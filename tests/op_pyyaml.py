@@ -9,7 +9,7 @@ here = os.path.dirname(__file__)
 yamltools_path = os.path.join(here, "..")
 if yamltools_path not in sys.path:
     sys.path.insert(0, yamltools_path)
-import yamltools4jedi.backend_pyyaml as ytpy  # noqa: E402
+import yamltools4jedi.backend_pyyaml as yt  # noqa: E402
 
 args = sys.argv
 nargs = len(args) - 1
@@ -40,37 +40,37 @@ elif operator == "pack":  # pack operator
         print("need dirname and fpath for the pack operator")
 
 if operator != "pack":
-    data = ytpy.load(yfile)
+    data = yt.load(yfile)
 
 if operator == "check":
-    ytpy.printd(f"check passed: {yfile} sucessfully loaded")
+    yt.printd(f"check passed: {yfile} sucessfully loaded")
 
 elif operator == "glance":
-    subdata = ytpy.get(data, querystr)
-    ytpy.glance(subdata)
+    subdata = yt.get(data, querystr)
+    yt.glance(subdata)
 
 elif operator == "traverse":
-    subdata = ytpy.get(data, querystr)
-    ytpy.traverse(subdata)
+    subdata = yt.get(data, querystr)
+    yt.traverse(subdata)
 
 elif operator == "dump":
-    subdata = ytpy.get(data, querystr)
-    ytpy.dump(subdata, dumper=dumper_str)
+    subdata = yt.get(data, querystr)
+    yt.dump(subdata, dumper=dumper_str)
 
 elif operator == "drop":
-    ytpy.drop(data, querystr)
-    ytpy.dump(data, dumper=dumper_str)
+    yt.drop(data, querystr)
+    yt.dump(data, dumper=dumper_str)
 
 elif operator == "set_value":
-    newblock = ytpy.load(newblock_str)
-    ytpy.set_value(data, querystr, newblock)
-    ytpy.dump(data, dumper=dumper_str)
+    newblock = yt.load(newblock_str)
+    yt.set_value(data, querystr, newblock)
+    yt.dump(data, dumper=dumper_str)
 
 elif operator == "split":
-    ytpy.split(yfile, dumper=dumper_str)
+    yt.split(yfile, dumper=dumper_str)
 
 elif operator == "pack":
-    ytpy.pack(dirname, fpath, dumper=dumper_str)
+    yt.pack(dirname, fpath, dumper=dumper_str)
 
 else:
-    ytpy.printd(f"unknown operator: {operator}")
+    yt.printd(f"unknown operator: {operator}")
