@@ -1,0 +1,9 @@
+         # Bounds Check (ObsValue)
+         - filter: Bounds Check
+           filter variables:
+           - name: airTemperature
+           minvalue: 100
+           maxvalue: 400
+           action:
+             name: reduce obs space
+
