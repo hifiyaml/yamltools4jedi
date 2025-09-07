@@ -1,9 +1,11 @@
 import yaml
+import os
 import sys
+import shutil
 from datetime import datetime
 
 
-# Custom Dumper class to modify list formatting
+# Custom Dumper class to tweak list formatting
 class MyDumper(yaml.Dumper):
     def represent_datetime(self, data):
         return self.represent_scalar('tag:yaml.org,2002:timestamp', data.strftime('%Y-%m-%dT%H:%M:%SZ'))
@@ -18,13 +20,28 @@ class MyDumper(yaml.Dumper):
             return self.represent_sequence('tag:yaml.org,2002:seq', data, flow_style=False)
 
 
-# load YAML data from a file or stdin(for pipe operations)
-def load(fname):
-    if fname == "pipe":
+# load YAML data from a string, a file or stdin(for pipe operations)
+def load(astring):
+    if astring == "pipe":
         yfile = sys.stdin
-    else:
-        yfile = open(fname, 'r')
+    elif os.path.exists(astring):  # a file name
+        yfile = open(astring, 'r')
+    else:  # a string
+        yfile = astring
     return yaml.safe_load(yfile)
+
+
+# print information for debugging purpose
+def printd(*parms):
+    msg = " ".join(str(p) for p in parms)
+    sys.stderr.write(msg + "\n")
+
+
+# tweak the dump format
+def get_my_dumper():
+    MyDumper.add_representer(list, MyDumper.represent_list)
+    MyDumper.add_representer(datetime, MyDumper.represent_datetime)
+    return MyDumper
 
 
 # glance the YAML data with "max_depth=1"
@@ -57,7 +74,13 @@ def traverse(data, n=None, after_list=False, list_index=None):
             elif after_list and i > 0:
                 print(f"{' '*(n-1)*2}{key}:")
             else:
-                print(f"{' '*(n-1)*2}{key}:")
+                if key == "filter":
+                    print(f"{' '*(n-1)*2}{key}: {value}")
+                elif key == "obs space":
+                    print(f"{' '*(n-1)*2}{key}: # name={value['name']}")
+                else:
+                    print(f"{' '*(n-1)*2}{key}:")
+
             traverse(value, n)
     elif isinstance(data, list):
         print(f"{' '*n*2}[a list of {len(data)} item(s)]")
@@ -65,99 +88,161 @@ def traverse(data, n=None, after_list=False, list_index=None):
             traverse(element, n, after_list=True, list_index=i)
 
 
-# get the value at the hirearchy query string level
-def getFinalValue(data, keytree):
-    if keytree:  # not empty
+# get the YAML block specified by querystr
+#   the returned data is a reference to a sub-item of the original data
+def get(data, querystr):
+    if querystr:  # not empty
+        query_list = querystr.strip("/").split("/")
         if isinstance(data, dict):
-            data = data[keytree.pop(0)]
+            data = data[query_list.pop(0)]
         elif isinstance(data, list):
-            index = int(keytree.pop(0))
+            index = int(query_list.pop(0))
             if index < 0:
                 index = 0
             elif index >= len(data):
                 index = len(data)-1
             data = data[index]
-        return getFinalValue(data, keytree)
+        querystr = "/".join(query_list)
+        return get(data, querystr)
     else:
         return data
 
 
-# edit the value referred to by a querystr
-def editValue(data, keytree, edit, prevKey=""):
-    if keytree:  # not empty, desend to the target
-        if isinstance(data, dict):
-            key = keytree.pop(0)
-            data[key] = editValue(data[key], keytree, edit, prevKey=key)
-        elif isinstance(data, list):
-            index = int(keytree.pop(0))
-            if index < 0:
-                index = 0
-            elif index >= len(data):
-                index = len(data)-1
-            data[index] = editValue(data[index], keytree, edit)
-        return data
-    else:  # empty, modify the target accordingly
-        if isinstance(data, dict):
-            data2 = load(edit)
-            if prevKey in data2:
-                return data2[prevKey]
+# set (in-place) the value of a list element or a dict key referred to by a querystr to newblock
+def set_value(data, querystr, newblock):
+    query_list = querystr.strip("/").split("/")
+    subdata = data
+    last_pos = len(query_list) -1
+    for i, s in enumerate(query_list):
+        if i < last_pos:
+            if s.isdigit():  # a list
+                subdata = subdata[int(s)]
+            elif s in subdata.keys():  # a dict
+                subdata = subdata[s]
             else:
-                # print(f'** No "{prevKey}" key in {edit} and no edits made **', sys.stderr)
-                return data
-        elif isinstance(data, list):
-            return load(edit)
-        elif isinstance(data, bool):  # bool is a subclass of int, so we should check bool first
-            if edit.lower() == 'true':
-                return True
-            elif edit.lower() == 'false':
-                return False
-        elif isinstance(data, int):
-            return int(edit)
-        else:
-            return edit
+                printd(f"{s}/ does not exist")
+                sys.exit(1)
+
+    s = query_list[last_pos]
+    if s.isdigit():
+        subdata[int(s)] = newblock
+    else:
+        subdata[s] = newblock
 
 
-# append a dict/list item
-def append(data, keytree, edit):
-    if keytree:  # not empty, desend to the target
+# dump a YAML block referred to by a querystr
+def dump(data, querystr="", fpath="", dumper="", default_flow_style=False, sort_keys=False):
+    data = get(data, querystr)
+    if fpath == "":
+        yfile = sys.stdout
+    else:
+        yfile = open(fpath, 'w')
+    if dumper == "":
+        dumper = yaml.Dumper
+    else:
+        dumper = get_my_dumper()
+    yaml.dump(data, yfile, Dumper=dumper, default_flow_style=False, sort_keys=False)
+
+# append a dict/list item, TODO
+def append(data, query_list, edit):
+    if query_list:  # not empty, desend to the target
         if isinstance(data, dict):
-            key = keytree.pop(0)
-            if not keytree:  # append new items to the dict
+            key = query_list.pop(0)
+            if not query_list:  # append new items to the dict
                 data2 = load(edit)
                 data.update(data2)
             else:
-                append(data[key], keytree, edit)
+                append(data[key], query_list, edit)
         elif isinstance(data, list):
-            index = int(keytree.pop(0))
+            index = int(query_list.pop(0))
             if index < 0:
                 index = 0
             elif index >= len(data):
                 index = len(data)-1
-            if not keytree:  # append new items to the lsit
+            if not query_list:  # append new items to the lsit
                 data2 = load(edit)
                 data.extend(data2)
             else:
-                append(data[index], keytree, edit)
+                append(data[index], query_list, edit)
 
 
-# delete a dict/list item
-def deleteItem(data, keytree):
-    if keytree:  # not empty, desend to the target
-        if isinstance(data, dict):
-            key = keytree.pop(0)
-            if not keytree:  # delete the key
-                data.pop(key, None)
+# drop a YAML block referred to by a querystr
+def drop(data, querystr):
+    query_list = querystr.strip("/").split("/")
+    subdata = data
+    last_pos = len(query_list) -1
+    for i, s in enumerate(query_list):
+        if i < last_pos:
+            if s.isdigit():  # a list
+                subdata = subdata[int(s)]
+            elif s in subdata.keys():  # a dict
+                subdata = subdata[s]
             else:
-                deleteItem(data[key], keytree)
-        elif isinstance(data, list):
-            index = int(keytree.pop(0))
-            if not keytree:  # delete the item
-                data.pop(index)
-            else:
-                deleteItem(data[index], keytree, edit)
+                printd(f"{s}/ does not exist")
+                sys.exit(1)
+
+    s = query_list[last_pos]
+    if s.isdigit():
+        del subdata[int(s)]
+    else:
+        del subdata[s]
 
 
-# tweak the dump format
-def set_new_dumper():
-    MyDumper.add_representer(list, MyDumper.represent_list)
-    MyDumper.add_representer(datetime, MyDumper.represent_datetime)
+
+# split JEDI super YAML files into individual observers and/or filters
+def split(fpath, level=1, dirname=".", dumper=""):
+    data = load(fpath)
+    basename = os.path.basename(fpath)
+    # dirname is the top level of the split results, default to current directory
+    dirname.rsplit("/")  # remove trailing /  if any
+    toppath = f"{dirname}/split.{basename}"
+
+    # if the dir exists, find an available dir name to backup old files first
+    if os.path.exists(toppath):
+        knt = 1
+        savedir = f'{toppath}_old{knt:04}'
+        while os.path.exists(savedir):
+            knt += 1
+            savedir = f'{toppath}_old{knt:04}'
+        shutil.move(toppath, savedir)
+    os.makedirs(toppath, exist_ok=True)
+
+    # deal with observers
+    obslist = data["cost function"]["observations"]["observers"]
+    with open(f"{toppath}/obslist.txt", 'w') as outfile:
+        for obs in obslist:
+           outfile.write(obs["obs space"]["name"] + "\n")
+
+    if level == 1:  # split to individual observers (filters kept intact)
+        for obs in obslist:
+            fpath = f'{toppath}/{obs["obs space"]["name"]}.yaml'
+            dump(obs, fpath=fpath, dumper=dumper)
+        data["cost function"]["observations"]["observers"] = []
+        dump(data, fpath=f'{toppath}/head.yaml', dumper=dumper)
+
+
+# pack individual observers, filters into one super YAML file
+def pack(dirname, fpath, dumper=""):
+    obslist = []
+    with open(os.path.join(dirname, "obslist.txt"), 'r') as infile:
+        for line in infile:
+            if line.strip():
+                obslist.append(line.strip())
+
+    # check it is level1 or lelve2 split
+    if os.path.isfile(os.path.join(dirname, f"{obslist[0]}.yaml")):
+        level = 1
+    elif os.path.isdir(os.path.join(dirname, f"{obslist[0]}")):
+        level = 2
+    else:
+        print(f"Neither {obslist[0]}.yaml nor {obslist[0]}/ found")
+        return
+
+    if level == 1:
+        data = load(os.path.join(dirname, "head.yaml"))
+        observers = []
+        for obsname in obslist:
+           obs = load(os.path.join(dirname, f"{obsname}.yaml"))
+           observers.append(obs)
+        data["cost function"]["observations"]["observers"] = observers
+        dump(data, fpath=fpath, dumper=dumper)
