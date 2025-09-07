@@ -38,9 +38,9 @@ else
   echo "FATAL: pack.yaml is different from org.yaml"
 fi
 
-diff -rf tmp ref 1>/dev/null 2>/dev/null
+diff -rf tmp ref_pyyaml 1>/dev/null 2>/dev/null
 if (( $? == 0 )); then
   echo "test passed, identical results."
 else
-  echo "test failed, different results from 'diff -r tmp ref'!"
+  echo "test failed, different results from 'diff -r tmp ref_pyyaml'!"
 fi
