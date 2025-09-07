@@ -1,0 +1,13 @@
+filter: RejectList
+apply at iterations:
+filter variables:
+  [a list of 1 item(s)]
+  - name:  #0
+where:
+  [a list of 1 item(s)]
+  - variable:  #0
+    is_in:
+    value:
+where operator:
+action:
+  name:

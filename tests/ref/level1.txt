@@ -1,0 +1,5 @@
+_member:
+output:
+variational:
+cost function:
+test:

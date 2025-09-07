@@ -1,0 +1,87 @@
+_member:
+  date: '@analysisDate@'
+  state variables: &id001 [water_vapor_mixing_ratio_wrt_moist_air, air_pressure_at_surface,
+    air_temperature, northward_wind, eastward_wind]
+  stream name: ensemble
+output:
+  filename: mpasout.nc
+  stream name: analysis
+variational:
+  minimizer:
+    algorithm: DRPCG
+  iterations:
+  - geometry:
+      nml_file: ./namelist.atmosphere
+      streams_file: ./streams.atmosphere
+      deallocate non-da fields: true
+      interpolation type: unstructured
+    gradient norm reduction: 1e-3
+    ninner: 50
+  - geometry:
+      nml_file: ./namelist.atmosphere
+      streams_file: ./streams.atmosphere
+      deallocate non-da fields: true
+      interpolation type: unstructured
+    gradient norm reduction: 1e-3
+    ninner: 50
+cost function:
+  cost type: 3D-Var
+  time window:
+    begin: '@beginDate@'
+    length: PT4H
+  jb evaluation: false
+  geometry:
+    nml_file: ./namelist.atmosphere
+    streams_file: ./streams.atmosphere
+    deallocate non-da fields: true
+    interpolation type: unstructured
+  analysis variables: *id001
+  background:
+    state variables: [water_vapor_mixing_ratio_wrt_moist_air, air_pressure_at_surface,
+      air_temperature, northward_wind, eastward_wind, air_potential_temperature, dry_air_density,
+      u, water_vapor_mixing_ratio_wrt_dry_air, air_pressure, landmask, seaice_fraction,
+      snowc, skin_temperature_at_surface, ivgtyp, isltyp, snowh, vegetation_area_fraction,
+      air_temperature_at_2m, eastward_wind_at_10m, northward_wind_at_10m, lai, smois,
+      tslb, pressure_p, cloud_liquid_water, cloud_liquid_ice, graupel, rain_water,
+      snow_water, cldfrac]
+    filename: mpasout.nc
+    date: '@analysisDate@'
+  background error:
+    covariance model: hybrid
+    components:
+    - covariance:
+        covariance model: ensemble
+        localization:
+          localization method: SABER
+          saber central block:
+            saber block name: BUMP_NICAS
+            active variables: *id001
+            read:
+              io:
+                data directory: data/bumploc
+                files prefix: bumploc
+              drivers:
+                multivariate strategy: duplicated
+                read local nicas: true
+              model:
+                level for 2d variables: last
+        members from template:
+          template:
+            date: '@analysisDate@'
+            state variables: *id001
+            stream name: ensemble
+            filename: ./data/ens/mem%iMember%.nc
+          pattern: '%iMember%'
+          start: 1
+          zero padding: 3
+          nmembers: 30
+      weight:
+        value: '@HYB_WGT_ENS@'
+  observations:
+    observers: []
+test:
+  reference filename: testoutput/rrfs-mpasjedi-ens3dvar.ref
+  test output filename: ./rrfs-mpasjedi-ens3dvar.out
+  float relative tolerance: 0.02
+  float absolute tolerance: 1.0e-06
+  integer tolerance: 3

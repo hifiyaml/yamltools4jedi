@@ -1,0 +1,8 @@
+cost type:
+time window:
+jb evaluation:
+geometry:
+analysis variables:
+background:
+background error:
+observations:

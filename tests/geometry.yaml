@@ -1,0 +1,7 @@
+geometry:
+  nml_file: ./namelist.atmosphere_jedivar
+  streams_file: ./streams.atmosphere_jedivar
+  deallocate non-da fields: true
+  interpolation type: unstructured
+gradient norm reduction: 1e-3
+ninner: 100
