@@ -16,7 +16,8 @@ if nargs < 2:
     print(f"{os.path.basename(args[0])} <file> <check|glance|traverse|dump|drop|set_value|append|split|pack> <querystr> [newblock_str]")
     exit()
 
-dumper_str = os.getenv("YAMLTOOLS_DUMPER", "")   # empty string, or mydumper, etc
+dumper_str = os.getenv("YT_DUMPER", "")   # empty string, or format1, etc
+split_level = int(os.getenv("YT_SPLIT_LEVEL", "1"))
 newblock_str, querystr = "", ""
 
 yfile = args[1]
@@ -66,7 +67,7 @@ elif operator == "set_value":
     yt.dump(data, dumper=dumper_str)
 
 elif operator == "split":
-    yt.split(yfile, dumper=dumper_str)
+    yt.split(yfile, level=int(split_level), dumper=dumper_str)
 
 elif operator == "pack":
     yt.pack(dirname, fpath, dumper=dumper_str)

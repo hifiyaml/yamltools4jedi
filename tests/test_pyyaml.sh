@@ -21,14 +21,22 @@ ytp demo.yaml set_value "output/filename" "ana.nc"  > tmp/ana.yaml
 ytp demo.yaml set_value "variational/iterations/0" geometry.yaml  > tmp/new_geometry.yaml
 
 
-export YAMLTOOLS_DUMPER="mydumper"
+export YT_DUMPER="format1"
+export YT_SPLIT_LEVEL="1"
 ytp demo.yaml split
-mv split.demo.yaml tmp/split.mydumper
+mv split.demo.yaml tmp/split.format1
 
 
-export YAMLTOOLS_DUMPER=""
+export YT_DUMPER=""
+export YT_SPLIT_LEVEL="1"
 ytp demo.yaml split
 mv split.demo.yaml tmp/split.default
+
+
+export YT_DUMPER="format1"
+export YT_SPLIT_LEVEL="2"
+ytp demo.yaml split
+mv split.demo.yaml tmp/split.format1.lvl2
 
 
 ytp demo.yaml dump > tmp/org.yaml
