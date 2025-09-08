@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-import yaml
 
 # for yamltools tests, we use the packages in this repo
 #   instead of the installed ones

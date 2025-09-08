@@ -112,7 +112,7 @@ def get(data, querystr):
 def set_value(data, querystr, newblock):
     query_list = querystr.strip("/").split("/")
     subdata = data
-    last_pos = len(query_list) -1
+    last_pos = len(query_list) - 1
     for i, s in enumerate(query_list):
         if i < last_pos:
             if s.isdigit():  # a list
@@ -143,6 +143,7 @@ def dump(data, querystr="", fpath="", dumper="", default_flow_style=False, sort_
         dumper = get_my_dumper()
     yaml.dump(data, yfile, Dumper=dumper, default_flow_style=False, sort_keys=False)
 
+
 # append a dict/list item, TODO
 def append(data, query_list, edit):
     if query_list:  # not empty, desend to the target
@@ -170,7 +171,7 @@ def append(data, query_list, edit):
 def drop(data, querystr):
     query_list = querystr.strip("/").split("/")
     subdata = data
-    last_pos = len(query_list) -1
+    last_pos = len(query_list) - 1
     for i, s in enumerate(query_list):
         if i < last_pos:
             if s.isdigit():  # a list
@@ -186,7 +187,6 @@ def drop(data, querystr):
         del subdata[int(s)]
     else:
         del subdata[s]
-
 
 
 # split JEDI super YAML files into individual observers and/or filters
@@ -211,7 +211,7 @@ def split(fpath, level=1, dirname=".", dumper=""):
     obslist = data["cost function"]["observations"]["observers"]
     with open(f"{toppath}/obslist.txt", 'w') as outfile:
         for obs in obslist:
-           outfile.write(obs["obs space"]["name"] + "\n")
+            outfile.write(obs["obs space"]["name"] + "\n")
 
     if level == 1:  # split to individual observers (filters kept intact)
         for obs in obslist:
@@ -242,7 +242,7 @@ def pack(dirname, fpath, dumper=""):
         data = load(os.path.join(dirname, "head.yaml"))
         observers = []
         for obsname in obslist:
-           obs = load(os.path.join(dirname, f"{obsname}.yaml"))
-           observers.append(obs)
+            obs = load(os.path.join(dirname, f"{obsname}.yaml"))
+            observers.append(obs)
         data["cost function"]["observations"]["observers"] = observers
         dump(data, fpath=fpath, dumper=dumper)
