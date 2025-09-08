@@ -1,11 +1,7 @@
 _member:
   date: '@analysisDate@'
-  state variables: &id001
-  - water_vapor_mixing_ratio_wrt_moist_air
-  - air_pressure_at_surface
-  - air_temperature
-  - northward_wind
-  - eastward_wind
+  state variables: &id001 [water_vapor_mixing_ratio_wrt_moist_air, air_pressure_at_surface,
+    air_temperature, northward_wind, eastward_wind]
   stream name: ensemble
 test:
   reference filename: testoutput/rrfs-mpasjedi-ens3dvar.ref
@@ -47,38 +43,13 @@ cost function:
     interpolation type: unstructured
   analysis variables: *id001
   background:
-    state variables:
-    - water_vapor_mixing_ratio_wrt_moist_air
-    - air_pressure_at_surface
-    - air_temperature
-    - northward_wind
-    - eastward_wind
-    - air_potential_temperature
-    - dry_air_density
-    - u
-    - water_vapor_mixing_ratio_wrt_dry_air
-    - air_pressure
-    - landmask
-    - seaice_fraction
-    - snowc
-    - skin_temperature_at_surface
-    - ivgtyp
-    - isltyp
-    - snowh
-    - vegetation_area_fraction
-    - air_temperature_at_2m
-    - eastward_wind_at_10m
-    - northward_wind_at_10m
-    - lai
-    - smois
-    - tslb
-    - pressure_p
-    - cloud_liquid_water
-    - cloud_liquid_ice
-    - graupel
-    - rain_water
-    - snow_water
-    - cldfrac
+    state variables: [water_vapor_mixing_ratio_wrt_moist_air, air_pressure_at_surface,
+      air_temperature, northward_wind, eastward_wind, air_potential_temperature, dry_air_density,
+      u, water_vapor_mixing_ratio_wrt_dry_air, air_pressure, landmask, seaice_fraction,
+      snowc, skin_temperature_at_surface, ivgtyp, isltyp, snowh, vegetation_area_fraction,
+      air_temperature_at_2m, eastward_wind_at_10m, northward_wind_at_10m, lai, smois,
+      tslb, pressure_p, cloud_liquid_water, cloud_liquid_ice, graupel, rain_water,
+      snow_water, cldfrac]
     filename: mpasout.nc
     date: '@analysisDate@'
   background error:
@@ -125,8 +96,7 @@ cost function:
             obsfile: data/obs/ioda_adpsfc.nc
             missing file action: warn
           obsgrouping:
-            group variables:
-            - stationIdentification
+            group variables: [stationIdentification]
             sort variable: pressure
             sort order: descending
         obsdataout:
@@ -136,10 +106,8 @@ cost function:
             allow overwrite: true
         io pool:
           max pool size: 1
-        observed variables:
-        - airTemperature
-        simulated variables:
-        - airTemperature
+        observed variables: [airTemperature]
+        simulated variables: [airTemperature]
       obs operator:
         name: VertInterp
         vertical coordinate: air_pressure
@@ -196,74 +164,14 @@ cost function:
             options:
               xvar:
                 name: MetaData/pressure
-              xvals:
-              - 110000
-              - 105000
-              - 100000
-              - 95000
-              - 90000
-              - 85000
-              - 80000
-              - 75000
-              - 70000
-              - 65000
-              - 60000
-              - 55000
-              - 50000
-              - 45000
-              - 40000
-              - 35000
-              - 30000
-              - 25000
-              - 20000
-              - 15000
-              - 10000
-              - 7500
-              - 5000
-              - 4000
-              - 3000
-              - 2000
-              - 1000
-              - 500
-              - 400
-              - 300
-              - 200
-              - 100
-              - 0
-              errors:
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
-              - 0.7528
+              xvals: [110000, 105000, 100000, 95000, 90000, 85000, 80000, 75000, 70000,
+                65000, 60000, 55000, 50000, 45000, 40000, 35000, 30000, 25000, 20000,
+                15000, 10000, 7500, 5000, 4000, 3000, 2000, 1000, 500, 400, 300, 200,
+                100, 0]
+              errors: [0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528,
+                0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528,
+                0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528,
+                0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528, 0.7528]
       - filter: Perform Action
         filter variables:
         - name: airTemperature
@@ -385,8 +293,7 @@ cost function:
             obsfile: data/obs/ioda_adpsfc.nc
             missing file action: warn
           obsgrouping:
-            group variables:
-            - stationIdentification
+            group variables: [stationIdentification]
             sort variable: pressure
             sort order: descending
         obsdataout:
@@ -396,10 +303,8 @@ cost function:
             allow overwrite: true
         io pool:
           max pool size: 1
-        observed variables:
-        - airTemperature
-        simulated variables:
-        - airTemperature
+        observed variables: [airTemperature]
+        simulated variables: [airTemperature]
       obs operator:
         name: VertInterp
         vertical coordinate: air_pressure
@@ -456,74 +361,14 @@ cost function:
             options:
               xvar:
                 name: MetaData/pressure
-              xvals:
-              - 110000
-              - 105000
-              - 100000
-              - 95000
-              - 90000
-              - 85000
-              - 80000
-              - 75000
-              - 70000
-              - 65000
-              - 60000
-              - 55000
-              - 50000
-              - 45000
-              - 40000
-              - 35000
-              - 30000
-              - 25000
-              - 20000
-              - 15000
-              - 10000
-              - 7500
-              - 5000
-              - 4000
-              - 3000
-              - 2000
-              - 1000
-              - 500
-              - 400
-              - 300
-              - 200
-              - 100
-              - 0
-              errors:
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
-              - 2.6349
+              xvals: [110000, 105000, 100000, 95000, 90000, 85000, 80000, 75000, 70000,
+                65000, 60000, 55000, 50000, 45000, 40000, 35000, 30000, 25000, 20000,
+                15000, 10000, 7500, 5000, 4000, 3000, 2000, 1000, 500, 400, 300, 200,
+                100, 0]
+              errors: [2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349,
+                2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349,
+                2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349,
+                2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349, 2.6349]
       - filter: Perform Action
         filter variables:
         - name: airTemperature
@@ -658,8 +503,7 @@ cost function:
             obsfile: data/obs/ioda_adpsfc.nc
             missing file action: warn
           obsgrouping:
-            group variables:
-            - stationIdentification
+            group variables: [stationIdentification]
             sort variable: pressure
             sort order: descending
         obsdataout:
@@ -669,10 +513,8 @@ cost function:
             allow overwrite: true
         io pool:
           max pool size: 1
-        observed variables:
-        - airTemperature
-        simulated variables:
-        - airTemperature
+        observed variables: [airTemperature]
+        simulated variables: [airTemperature]
       obs operator:
         name: VertInterp
         vertical coordinate: air_pressure
@@ -729,74 +571,14 @@ cost function:
             options:
               xvar:
                 name: MetaData/pressure
-              xvals:
-              - 110000
-              - 105000
-              - 100000
-              - 95000
-              - 90000
-              - 85000
-              - 80000
-              - 75000
-              - 70000
-              - 65000
-              - 60000
-              - 55000
-              - 50000
-              - 45000
-              - 40000
-              - 35000
-              - 30000
-              - 25000
-              - 20000
-              - 15000
-              - 10000
-              - 7500
-              - 5000
-              - 4000
-              - 3000
-              - 2000
-              - 1000
-              - 500
-              - 400
-              - 300
-              - 200
-              - 100
-              - 0
-              errors:
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
-              - 2.2585
+              xvals: [110000, 105000, 100000, 95000, 90000, 85000, 80000, 75000, 70000,
+                65000, 60000, 55000, 50000, 45000, 40000, 35000, 30000, 25000, 20000,
+                15000, 10000, 7500, 5000, 4000, 3000, 2000, 1000, 500, 400, 300, 200,
+                100, 0]
+              errors: [2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585,
+                2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585,
+                2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585,
+                2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585, 2.2585]
       - filter: Perform Action
         filter variables:
         - name: airTemperature

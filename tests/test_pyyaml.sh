@@ -13,6 +13,7 @@ ytp demo.yaml glance "cost function/observations" > tmp/level3.txt
 ytp demo.yaml traverse "cost function/observations/observers/0/obs filters/0"  > tmp/filter0.txt
 
 
+export YT_DUMPER="format1"
 ytp demo.yaml dump "test" > tmp/ctest.yaml
 
 ytp demo.yaml drop "cost function/observations" > tmp/no_obs.yaml
@@ -39,6 +40,7 @@ ytp demo.yaml split
 mv split.demo.yaml tmp/split.format1.lvl2
 
 
+export YT_DUMPER=""
 ytp demo.yaml dump > tmp/org.yaml
 ytp tmp/split.default pack tmp/pack.yaml
 diff tmp/org.yaml tmp/pack.yaml

@@ -1,0 +1,12 @@
+filter: Background Check
+apply at iterations: 0,1
+filter variables:
+- name: airTemperature
+threshold: 3.5
+action:
+  name: reject
+where:
+- variable: ObsType/airTemperature
+- variable: QualityMarker/airTemperature
+  is_in: 3
+defer to post: true

@@ -83,3 +83,5 @@ cost function:
           nmembers: 30
       weight:
         value: '@HYB_WGT_ENS@'
+  observations:
+    observers: []

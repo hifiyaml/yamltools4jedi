@@ -1,0 +1,12 @@
+filter: Perform Action
+apply at iterations: 0,1
+filter variables:
+- name: airTemperature
+action:
+  name: assign error
+  error function: TempObsErrorData/airTemperature
+where:
+- variable:
+    name: TempObsErrorData/airTemperature
+  value: is_valid
+defer to post: true

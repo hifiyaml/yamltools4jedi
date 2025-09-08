@@ -1,0 +1,15 @@
+filter: Perform Action
+apply at iterations: 0,1
+filter variables:
+- name: airTemperature
+action:
+  name: assign error
+  error parameter: 3.0
+where:
+- variable:
+    name: ObsErrorData/airTemperature
+  minvalue: 3.0
+- variable:
+    name: ObsErrorData/airTemperature
+  value: is_valid
+defer to post: true

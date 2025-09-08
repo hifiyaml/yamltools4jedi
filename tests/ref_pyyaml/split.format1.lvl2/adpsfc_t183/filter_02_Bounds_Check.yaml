@@ -1,0 +1,7 @@
+filter: Bounds Check
+filter variables:
+- name: airTemperature
+test variables:
+- name: GeoVaLs/observable_domain_mask
+minvalue: 0.0
+maxvalue: 0.5
