@@ -151,6 +151,14 @@ def getkf_observer_tweak(data, getkf_type):
         pos, errmsg = hy.get_start_pos(data, linestr="- filter: Temporal Thinning", ignore_error=True)
         if errmsg is None and not data[pos].strip().startswith("#"):  # do nothing if not found or commented out
             next_one = hy.next_pos(data, pos)
+            # check if there are comment lines immediately before this YAML block and with less or the same indentations
+            nspace = hy.strip_indentations(data[pos])[0]
+            for i in range(pos - 1, -1, -1):
+                nspace2 = hy.strip_indentations(data[i])[0]
+                if data[i].strip().startswith('#') and nspace2 <= nspace:
+                    pos = i
+                else:
+                    break  # exit the loop if non-comment
             del data[pos:next_one]
 
 
