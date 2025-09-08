@@ -38,8 +38,19 @@ else
   echo "FATAL: pack1.1.yaml is different from demo.yaml"
 fi
 
+export YT_USE_CONV_SAT_INFO=false
+export YT_YTYPE="getkf"
+export YT_GETKF_TYPE="solver"
+op_info_getkf.py getkf.yaml > tmp/solver.yaml
 
+export YT_USE_CONV_SAT_INFO=false
+export YT_YTYPE="getkf"
+export YT_GETKF_TYPE="post"
+op_info_getkf.py getkf.yaml > tmp/post.yaml
 
+export YT_USE_CONV_SAT_INFO=true
+export YT_YTYPE="jedivar"
+op_info_getkf.py demo.yaml > tmp/conv_sat_info.yaml
 
 diff -rf tmp ref_hifiyaml 1>/dev/null 2>/dev/null
 if (( $? == 0 )); then

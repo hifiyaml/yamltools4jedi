@@ -7,6 +7,12 @@ _member:
   - northward_wind
   - eastward_wind
   stream name: ensemble
+test:
+  reference filename: testoutput/rrfs-mpasjedi-ens3dvar.ref
+  test output filename: ./rrfs-mpasjedi-ens3dvar.out
+  float relative tolerance: 0.02
+  float absolute tolerance: 1.0e-06
+  integer tolerance: 3
 output:
   filename: mpasout.nc
   stream name: analysis
@@ -106,9 +112,3 @@ cost function:
           nmembers: 30
       weight:
         value: '@HYB_WGT_ENS@'
-test:
-  reference filename: testoutput/rrfs-mpasjedi-ens3dvar.ref
-  test output filename: ./rrfs-mpasjedi-ens3dvar.out
-  float relative tolerance: 0.02
-  float absolute tolerance: 1.0e-06
-  integer tolerance: 3
