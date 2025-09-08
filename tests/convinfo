@@ -1,0 +1,18 @@
+! otype   = observation type (ps, t, uv, q, etc.)                                          	
+! type    = prepbufr observation type (if available) 	
+! sub     = prepbufr subtype
+! iuse    = flag if to use/not use / monitor data	
+!         = 1  use data	
+!         = 0  do not use data	
+!         = -1 monitor data	
+! twindow = time window (+/- hours)	
+! gross   = gross error parameter - gross error	
+! ermax   = gross error parameter - max error  	
+! ermin   = gross error parameter - min error	
+!  ** Only iuse=0/1 is implemented in rrfs-workflow(mpas-jedi) at the moment
+!  ** reference: https://www.emc.ncep.noaa.gov/mmb/data_processing/prepbufr.doc/table_5.htm
+!
+!otype   type  sub iuse twindow  gross ermax ermin msgtype
+ t        181    0    1     0.25   5.0   3.0   1.0 ADPSFC
+ t        183    0   -1     0.25   5.0   3.0   1.0 ADPSFC,SFCSHP
+ t        187    0    0     0.25   5.0   3.0   1.0 ADPSFC

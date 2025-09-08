@@ -1,0 +1,24 @@
+- obs space:
+    name: adpsfc_t181
+    distribution:
+      name: "RoundRobin"
+      halo size: 300e3
+    obsdatain:
+      engine:
+        type: H5File
+        obsfile: data/obs/ioda_adpsfc.nc
+        missing file action: "warn"
+      obsgrouping:
+        group variables: ["stationIdentification"]
+        sort variable: "pressure"
+        sort order: "descending"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: jdiag_adpsfc_t181.nc
+        allow overwrite: true
+    io pool:
+      max pool size: 1
+    observed variables: [airTemperature]
+    simulated variables: [airTemperature]
+

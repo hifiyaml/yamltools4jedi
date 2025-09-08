@@ -1,0 +1,48 @@
+     - obs space:
+         name: adpsfc_t183
+         distribution:
+           name: "RoundRobin"
+           halo size: 300e3
+         obsdatain:
+           engine:
+             type: H5File
+             obsfile: "data/obs/ioda_adpsfc.nc"
+             missing file action: "warn"
+             #obsfile: "obsout/sfcship_tsen_obs_2024052700_dc.nc4"
+           obsgrouping:
+             group variables: ["stationIdentification"]
+             sort variable: "pressure"
+             sort order: "descending"
+         obsdataout:
+           engine:
+             type: H5File
+             obsfile: jdiag_adpsfc_t183.nc
+             allow overwrite: true
+         io pool:
+           max pool size: 1
+         observed variables: [airTemperature]
+         simulated variables: [airTemperature]
+
+       obs operator:
+           name: VertInterp
+           vertical coordinate: air_pressure
+           observation vertical coordinate: pressure
+           observation vertical coordinate group: MetaData
+           interpolation method: log-linear
+           #gsi geovals:
+           #  filename: "obsout/sfcship_tsen_geoval_2024052700.nc4"
+           #  levels_are_top_down: False
+           variables:
+           - name: airTemperature
+
+       linear obs operator:
+         name: VertInterp
+
+       obs error:
+         covariance model: diagonal
+
+       obs localizations:
+         - localization method: Horizontal Gaspari-Cohn
+           lengthscale: 300e3 # orig
+
+       obs filters:

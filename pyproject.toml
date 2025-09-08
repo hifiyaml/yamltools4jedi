@@ -1,0 +1,24 @@
+[project]
+name = "yamltools4jedi"
+version = "0.1.0"
+description = "YAML tools to facilitate reading and editing JEDI super YAML files"
+readme = "README.md"
+authors = [
+    { name="Guoqing Ge", email="Guoqing.Ge@noaa.gov" }
+]
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+
+dependencies = [
+  "pyyaml>=6.0",
+  "hifiyaml>=0.1.5"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/hifiyaml/yamltools4jedi/wiki"
+Source = "https://github.com/hifiyaml/yamltools4jedi"
+Tracker = "https://github.com/hifiyaml/yamltools4jedi/issues"
