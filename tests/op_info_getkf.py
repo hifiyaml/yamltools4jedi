@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-sys.path.insert(0, "/home/Guoqing.Ge/hifiyaml")  # printd(
 import hifiyaml as hy
 
 # for yamltools tests, we use the packages in this repo
