@@ -9,7 +9,7 @@ here = os.path.dirname(__file__)
 yamltools_path = os.path.join(here, "..")
 if yamltools_path not in sys.path:
     sys.path.insert(0, yamltools_path)
-import yamltools4jedi.backend_hifyaml as yt  # noqa: E402
+import yamltools4jedi.backend_hifiyaml as yt  # noqa: E402
 
 args = sys.argv
 nargs = len(args) - 1
@@ -17,11 +17,10 @@ if nargs < 2:
     print(f"{os.path.basename(args[0])} <file> <dump|drop|modify|split|pack> <querystr> [newblock_str]")
     exit()
 
-dedent = os.getenv("YAMLTOOLS_DEDENT", "False").upper() == "TRUE"
-split_level = int(os.getenv("YAMLTOOLS_SPLIT_LEVEL", "1"))
-clean_extra_indentations = os.getenv("CLEAN_EXTRA_INDENTATIONS", "False").upper() == "TRUE"
-listIndent = os.getenv("LIST_INDENT", "False").upper() == "TRUE"
-plainpack = os.getenv("PLAINPACK", "False").upper() == "TRUE"
+dedent = os.getenv("YT_DEDENT", "False").upper() == "TRUE"
+split_level = int(os.getenv("YT_SPLIT_LEVEL", "1"))
+listIndent = os.getenv("YT_LIST_INDENT", "False").upper() == "TRUE"
+plain_pack = os.getenv("YT_PLAIN_PACK", "False").upper() == "TRUE"
 
 newblock_str, querystr = "", ""
 
@@ -52,18 +51,21 @@ if operator == "dump":
 
 elif operator == "drop":
     hy.drop(data, querystr)
-    hy.dump(data, do_dedent=dedent)
+    hy.dump(data)
 
 elif operator == "modify":
-    newblock = hy.load(newblock_str)
+    if os.path.exists(newblock_str):
+        newblock = hy.load(newblock_str)
+    else:
+        newblock = hy.text_to_yblock(newblock_str)
     hy.modify(data, querystr, newblock)
-    hy.dump(data, do_dedent=dedent)
+    hy.dump(data)
 
 elif operator == "split":
-    yt.split(yfile, level=split_level, clean_extra_indentations=clean_extra_indentations)
+    yt.split(yfile, level=split_level, clean_extra_indentations=dedent)
 
 elif operator == "pack":
-    yt.pack(dirname, fpath, listIndent=listIndent, plainpack=plainpack)
+    yt.pack(dirname, fpath, listIndent=listIndent, plain_pack=plain_pack)
 
 else:
     hy.printd(f"unknown operator: {operator}")
