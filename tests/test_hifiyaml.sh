@@ -41,6 +41,16 @@ else
   echo "FATAL: pack1.1.yaml is different from demo.yaml"
 fi
 
+export YT_DEDENT=fase
+export YT_PLAIN_PACK=true
+yth tmp/split.default_2 pack  tmp/pack2.yaml
+diff tmp/pack2.yaml demo.yaml
+if (( $? == 0 )); then
+  echo "GOOD: split and re-pack generate the identical YAML file"
+else
+  echo "FATAL: pack2.yaml is different from demo.yaml"
+fi
+
 export YT_USE_CONV_SAT_INFO=false
 export YT_YTYPE="getkf"
 export YT_GETKF_TYPE="solver"
