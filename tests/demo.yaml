@@ -378,6 +378,7 @@ cost function:
 
          #- filter: GOMsaver
          #  filename: ./data/geovals/adpsfc_geovals_rrfs.nc4
+       after: obs filters
      - obs space:
          name: adpsfc_t183
          distribution:
