@@ -317,9 +317,9 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
         shutil.move(toppath, savedir)
     os.makedirs(toppath, exist_ok=True)
 
-    # write head.yaml
+    # write main.yaml
     yhead_end, _ = hy.get_start_pos(data, "cost function/observations/observers")
-    with open(f'{toppath}/head.yaml', 'w') as outfile:
+    with open(f'{toppath}/main.yaml', 'w') as outfile:
         for i in range(yhead_end + 1):
             outfile.write(data[i] + '\n')
 
@@ -353,8 +353,8 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
                 if any(x in data[i] for x in ("obs filters:", "obs pre filters:", "obs prior filters:", "obs post filters:")):
                     ohead_end = i
                     break
-            # write obshead.yaml
-            with open(f"{obspath}/obshead.yaml", 'w') as outfile:
+            # write obsmain.yaml
+            with open(f"{obspath}/obsmain.yaml", 'w') as outfile:
                 nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
                 for i in range(obs["pos1"], ohead_end + 1):
                     line = data[i]
@@ -428,11 +428,11 @@ plain_pack: ignore all indentation settings, pack as-is;
         return
 
     if level == 1:
-        data = hy.load(os.path.join(dirname, "head.yaml"))
-        # check if the last line of head.yaml is "observers:"
+        data = hy.load(os.path.join(dirname, "main.yaml"))
+        # check if the last line of main.yaml is "observers:"
         line = data[-1]
         if "observers:" not in line:
-            print("The last line of head.yaml is not 'observers:'")
+            print("The last line of main.yaml is not 'observers:'")
             return
         # assemble individual observers
         nspace = hy.strip_indentations(line)[0]
@@ -442,21 +442,21 @@ plain_pack: ignore all indentation settings, pack as-is;
                 align_indentation(nspace, block, nIndent, listIndent)
             data.extend(block)
     else:
-        data = hy.load(os.path.join(dirname, "head.yaml"))
-        # check if the last line of head.yaml is "observers:"
+        data = hy.load(os.path.join(dirname, "main.yaml"))
+        # check if the last line of main.yaml is "observers:"
         line = data[-1]
         if "observers:" not in line:
-            print("The last line of head.yaml is not 'observers:'")
+            print("The last line of main.yaml is not 'observers:'")
             return
         # assemble individual observers
         nspace = hy.strip_indentations(line)[0]
         for obsname in obslist:
-            obs_block = hy.load(os.path.join(dirname, f"{obsname}/obshead.yaml"))
-            # check if the last line of obshead.yaml is "filters:"
+            obs_block = hy.load(os.path.join(dirname, f"{obsname}/obsmain.yaml"))
+            # check if the last line of obsmain.yaml is "filters:"
             line = obs_block[-1]
             nspace4flt = hy.strip_indentations(line)[0]
             if "filters:" not in line:
-                print(f"The last line of {obsname}/obshead.yaml is not 'filters:'")
+                print(f"The last line of {obsname}/obsmain.yaml is not 'filters:'")
                 return
             obs_block.pop()  # remove the last "filters:" line, we will add based on pre/prior/post/regular filters
 
