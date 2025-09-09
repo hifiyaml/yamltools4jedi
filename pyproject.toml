@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name="Guoqing Ge", email="Guoqing.Ge@noaa.gov" }
 ]
-license = {file = "LICENSE"}
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 
 dependencies = [
