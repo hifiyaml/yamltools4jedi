@@ -45,3 +45,4 @@
            lengthscale: 300e3 # orig
 
        obs filters:
+       after: obs filters
