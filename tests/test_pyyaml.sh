@@ -42,8 +42,19 @@ mv split.demo.yaml tmp/split.format1.lvl2
 
 export YT_DUMPER=""
 ytp demo.yaml dump > tmp/org.yaml
-ytp tmp/split.default pack tmp/pack.yaml
+ytp tmp/split.default  pack  tmp/pack.yaml
 diff tmp/org.yaml tmp/pack.yaml
+if (( $? == 0 )); then
+  echo "GOOD: split and re-pack generate the identical YAML file"
+else
+  echo "FATAL: pack.yaml is different from org.yaml"
+fi
+
+
+export YT_DUMPER="format1"
+ytp demo.yaml dump > tmp/org2.yaml
+ytp tmp/split.format1.lvl2  pack  tmp/pack2.yaml
+diff tmp/org2.yaml tmp/pack2.yaml
 if (( $? == 0 )); then
   echo "GOOD: split and re-pack generate the identical YAML file"
 else
