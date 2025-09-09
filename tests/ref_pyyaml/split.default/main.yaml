@@ -1,15 +1,12 @@
-_member: &memberConfig
-  date: &analysisDate '@analysisDate@'
-  state variables: &incvars [water_vapor_mixing_ratio_wrt_moist_air, air_pressure_at_surface, air_temperature, northward_wind, eastward_wind]
+_member:
+  date: '@analysisDate@'
+  state variables: &id001
+  - water_vapor_mixing_ratio_wrt_moist_air
+  - air_pressure_at_surface
+  - air_temperature
+  - northward_wind
+  - eastward_wind
   stream name: ensemble
-
-test:
-  reference filename: testoutput/rrfs-mpasjedi-ens3dvar.ref
-  test output filename: ./rrfs-mpasjedi-ens3dvar.out
-  float relative tolerance: 0.02
-  float absolute tolerance: 1.0e-6
-  integer tolerance: 3
-
 output:
   filename: mpasout.nc
   stream name: analysis
@@ -34,15 +31,15 @@ variational:
 cost function:
   cost type: 3D-Var
   time window:
-     begin: '@beginDate@'
-     length: PT4H
+    begin: '@beginDate@'
+    length: PT4H
   jb evaluation: false
   geometry:
     nml_file: ./namelist.atmosphere
     streams_file: ./streams.atmosphere
     deallocate non-da fields: true
     interpolation type: unstructured
-  analysis variables: *incvars
+  analysis variables: *id001
   background:
     state variables:
     - water_vapor_mixing_ratio_wrt_moist_air
@@ -77,7 +74,7 @@ cost function:
     - snow_water
     - cldfrac
     filename: mpasout.nc
-    date: *analysisDate
+    date: '@analysisDate@'
   background error:
     covariance model: hybrid
     components:
@@ -87,7 +84,7 @@ cost function:
           localization method: SABER
           saber central block:
             saber block name: BUMP_NICAS
-            active variables: *incvars
+            active variables: *id001
             read:
               io:
                 data directory: data/bumploc
@@ -99,13 +96,21 @@ cost function:
                 level for 2d variables: last
         members from template:
           template:
-            <<: *memberConfig
+            date: '@analysisDate@'
+            state variables: *id001
+            stream name: ensemble
             filename: ./data/ens/mem%iMember%.nc
-          pattern: "%iMember%"
+          pattern: '%iMember%'
           start: 1
           zero padding: 3
           nmembers: 30
       weight:
-        value: "@HYB_WGT_ENS@"
+        value: '@HYB_WGT_ENS@'
   observations:
-     observers:
+    observers: []
+test:
+  reference filename: testoutput/rrfs-mpasjedi-ens3dvar.ref
+  test output filename: ./rrfs-mpasjedi-ens3dvar.out
+  float relative tolerance: 0.02
+  float absolute tolerance: 1.0e-06
+  integer tolerance: 3

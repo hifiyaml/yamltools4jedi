@@ -1,17 +1,17 @@
 [project]
 name = "yamltools4jedi"
-version = "0.1.1"
+version = "0.1.2"
 description = "YAML tools to facilitate reading and editing JEDI super YAML files"
 readme = "README.md"
 authors = [
     { name="Guoqing Ge", email="Guoqing.Ge@noaa.gov" }
 ]
-license = {file = "LICENSE"}
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 
 dependencies = [
   "pyyaml>=6.0",
-  "hifiyaml>=0.1.5"
+  "hifiyaml>=0.1.6"
 ]
 
 [build-system]

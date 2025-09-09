@@ -1,0 +1,11 @@
+filter: Variable Assignment
+apply at iterations: 0,1
+assignments:
+- name: TempObsErrorData/airTemperature
+  type: float
+  function:
+    name: ObsFunction/Arithmetic
+    options:
+      variables:
+      - name: ObsErrorData/airTemperature
+defer to post: true

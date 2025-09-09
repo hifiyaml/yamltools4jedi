@@ -13,6 +13,7 @@ ytp demo.yaml glance "cost function/observations" > tmp/level3.txt
 ytp demo.yaml traverse "cost function/observations/observers/0/obs filters/0"  > tmp/filter0.txt
 
 
+export YT_DUMPER="format1"
 ytp demo.yaml dump "test" > tmp/ctest.yaml
 
 ytp demo.yaml drop "cost function/observations" > tmp/no_obs.yaml
@@ -21,19 +22,39 @@ ytp demo.yaml set_value "output/filename" "ana.nc"  > tmp/ana.yaml
 ytp demo.yaml set_value "variational/iterations/0" geometry.yaml  > tmp/new_geometry.yaml
 
 
-export YAMLTOOLS_DUMPER="mydumper"
+export YT_DUMPER="format1"
+export YT_SPLIT_LEVEL="1"
 ytp demo.yaml split
-mv split.demo.yaml tmp/split.mydumper
+mv split.demo.yaml tmp/split.format1
 
 
-export YAMLTOOLS_DUMPER=""
+export YT_DUMPER=""
+export YT_SPLIT_LEVEL="1"
 ytp demo.yaml split
 mv split.demo.yaml tmp/split.default
 
 
+export YT_DUMPER="format1"
+export YT_SPLIT_LEVEL="2"
+ytp demo.yaml split
+mv split.demo.yaml tmp/split.format1.lvl2
+
+
+export YT_DUMPER=""
 ytp demo.yaml dump > tmp/org.yaml
-ytp tmp/split.default pack tmp/pack.yaml
+ytp tmp/split.default  pack  tmp/pack.yaml
 diff tmp/org.yaml tmp/pack.yaml
+if (( $? == 0 )); then
+  echo "GOOD: split and re-pack generate the identical YAML file"
+else
+  echo "FATAL: pack.yaml is different from org.yaml"
+fi
+
+
+export YT_DUMPER="format1"
+ytp demo.yaml dump > tmp/org2.yaml
+ytp tmp/split.format1.lvl2  pack  tmp/pack2.yaml
+diff tmp/org2.yaml tmp/pack2.yaml
 if (( $? == 0 )); then
   echo "GOOD: split and re-pack generate the identical YAML file"
 else

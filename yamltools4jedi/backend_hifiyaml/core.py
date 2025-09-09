@@ -169,18 +169,24 @@ def get_all_filters(data, pos1, pos2):
 
     while cur < pos2:
         for i in range(cur, pos2):
+            found = False
             if "- filter:" in data[i] and not data[i].strip().startswith("#"):
                 cur = i
+                found = True
                 break
+
+        # if no more "- filter:" found, break the while loop
+        if not found:
+            break
 
         category = data[cur].split(":")[1].strip()
         next_one = hy.next_pos(data, cur)
 
-        # check if there are matching comments immediately before this YAML block
+        # check if there are leading comment lines before this YAML block and with less indentation
         nspace = hy.strip_indentations(data[cur])[0]
         for i in range(cur - 1, -1, -1):
             nspace2, _, line = hy.strip_indentations(data[i])
-            if nspace2 == nspace and line.startswith('#'):
+            if nspace2 <= nspace and line.startswith('#'):
                 cur = i
             else:
                 break  # exit the loop if not a comment or different indentation level
@@ -209,10 +215,16 @@ def get_all_obs(data, shallow=False):
     end = len(data)
 
     while cur < end:
+        found = False
         for i in range(cur, end):
             if "- obs space:" in data[i]:
                 cur = i
+                found = True
                 break
+
+        # if no more "- obs space:" found, break the while loop
+        if not found:
+            break
 
         name = data[cur + 1].split(":")[1].strip()  # "name:" is expected to follow "- obs space:"
         next_one = hy.next_pos(data, cur)
@@ -231,7 +243,7 @@ def get_all_obs(data, shallow=False):
         else:
             sname = name
 
-        # check if there are matching comments immediately before this YAML block
+        # check if there are leading comment lines before this YAML block and with less indentation
         nspace = hy.strip_indentations(data[cur])[0]
         for i in range(cur - 1, -1, -1):
             nspace2, _, line = hy.strip_indentations(data[i])
@@ -278,9 +290,9 @@ def get_all_obs(data, shallow=False):
     return dcObs
 
 
-# write_out_filters
-def write_out_filters(key, obs, obspath, clean_extra_indentations, filterlist):
-    if obs[key]:
+# write_out_filters and then remove them from obs["block"]
+def write_out_filters(key, obs, obspath, do_dedent, filterlist):
+    if obs[key]:  # non-empty
         first = obs[key][0]["block"][0]
         nspace = hy.strip_indentations(first)[0]  # get the extra number of indentations
         for i, dcFilter in enumerate(obs[key]):
@@ -290,17 +302,21 @@ def write_out_filters(key, obs, obspath, clean_extra_indentations, filterlist):
             filterlist.append(f"{prefix}_{i:02}_{category}.yaml")
             with open(fpath, 'w') as outfile:
                 for line in dcFilter["block"]:
-                    if clean_extra_indentations:
+                    if do_dedent:
                         nspace2, _, line2 = hy.strip_indentations(line)
                         if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
                             line = line2
                         else:
                             line = line[nspace:]
                     outfile.write(line + "\n")
+        # remove "key" section from the obs["block"]
+        pos1, _ = hy.get_start_pos(obs["block"], f"obs {key}")
+        pos2 = hy.next_pos(obs["block"], pos1)
+        obs["block"][pos1+1:pos2] = []  # keep the "obs {key}:" line
 
 
 # split a super YAML files to individual observers/filters
-def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
+def split(fpath, level=1, dirname=".", do_dedent=False):
     data = hy.load(fpath)
     basename = os.path.basename(fpath)
     # dirname is the top level of the split results, default to current directory
@@ -317,12 +333,6 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
         shutil.move(toppath, savedir)
     os.makedirs(toppath, exist_ok=True)
 
-    # write head.yaml
-    yhead_end, _ = hy.get_start_pos(data, "cost function/observations/observers")
-    with open(f'{toppath}/head.yaml', 'w') as outfile:
-        for i in range(yhead_end + 1):
-            outfile.write(data[i] + '\n')
-
     # write observers ( and filters if split level = 2 )
     dcObs = get_all_obs(data)
     with open(f"{toppath}/obslist.txt", 'w') as outfile:
@@ -335,7 +345,7 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
             nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
             with open(fpath, 'w') as outfile:
                 for line in obs["block"]:
-                    if clean_extra_indentations:
+                    if do_dedent:
                         nspace2, _, line2 = hy.strip_indentations(line)
                         if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
                             line = line2
@@ -348,17 +358,22 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
             obspath = f"{toppath}/{name}"
             os.makedirs(obspath, exist_ok=True)
 
-            # find the the end of the observer head
-            for i in range(obs["pos1"], obs["pos2"]):
-                if any(x in data[i] for x in ("obs filters:", "obs pre filters:", "obs prior filters:", "obs post filters:")):
-                    ohead_end = i
-                    break
-            # write obshead.yaml
-            with open(f"{obspath}/obshead.yaml", 'w') as outfile:
+            # write out filters
+            filterlist = []
+            write_out_filters("filters", obs, obspath, do_dedent, filterlist)
+            write_out_filters("pre filters", obs, obspath, do_dedent, filterlist)
+            write_out_filters("prior filters", obs, obspath, do_dedent, filterlist)
+            write_out_filters("post filters", obs, obspath, do_dedent, filterlist)
+            # write out filterlist.txt
+            with open(f"{obspath}/filterlist.txt", 'w') as outfile:
+                for item in filterlist:
+                    outfile.write(f"{item}\n")
+
+            # write obsmain.yaml
+            with open(f"{obspath}/obsmain.yaml", 'w') as outfile:
                 nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
-                for i in range(obs["pos1"], ohead_end + 1):
-                    line = data[i]
-                    if clean_extra_indentations:
+                for line in obs["block"]:
+                    if do_dedent:
                         nspace2, _, line2 = hy.strip_indentations(line)
                         if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
                             line = line2
@@ -366,16 +381,13 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
                             line = line[nspace:]
                     outfile.write(line + "\n")
 
-            # write out filters
-            filterlist = []
-            write_out_filters("filters", obs, obspath, clean_extra_indentations, filterlist)
-            write_out_filters("pre filters", obs, obspath, clean_extra_indentations, filterlist)
-            write_out_filters("prior filters", obs, obspath, clean_extra_indentations, filterlist)
-            write_out_filters("post filters", obs, obspath, clean_extra_indentations, filterlist)
-            # write out filterlist.txt
-            with open(f"{obspath}/filterlist.txt", 'w') as outfile:
-                for item in filterlist:
-                    outfile.write(f"{item}\n")
+    # write main.yaml
+    pos1, _ = hy.get_start_pos(data, "observations/observers")
+    pos2 = hy.next_pos(data, pos1)
+    data[pos1+1:pos2] = []  # keep the "observers:" line
+    with open(f'{toppath}/main.yaml', 'w') as outfile:
+        for i in range(len(data)):
+            outfile.write(data[i] + '\n')
 
 
 # align the indentation in data based on a target nspace, nIdent, listIndent settings.
@@ -409,7 +421,7 @@ fpath:   the target YAML file path
 nIndent: how many spaces for changing indentation level
 listIndent: whether to indent lists
 plain_pack: ignore all indentation settings, pack as-is;
-  it can replicate the original YAML file splitted with clean_extra_indentations=False
+  it can replicate the original YAML file splitted with do_dedent=False
     '''
     # read obslist
     obslist = []
@@ -427,68 +439,57 @@ plain_pack: ignore all indentation settings, pack as-is;
         print(f"Neither {obslist[0]}.yaml nor {obslist[0]}/ found")
         return
 
+    data = hy.load(os.path.join(dirname, "main.yaml"))
+    pos1, _ = hy.get_start_pos(data, "observations/observers")
+    nspace = hy.strip_indentations(data[pos1])[0]
     if level == 1:
-        data = hy.load(os.path.join(dirname, "head.yaml"))
-        # check if the last line of head.yaml is "observers:"
-        line = data[-1]
-        if "observers:" not in line:
-            print("The last line of head.yaml is not 'observers:'")
-            return
         # assemble individual observers
-        nspace = hy.strip_indentations(line)[0]
+        observers = []
         for obsname in obslist:
             block = hy.load(os.path.join(dirname, f"{obsname}.yaml"))
-            if not plain_pack:  # only aligh indentation for non plain_pack situation
+            if not plain_pack:  # only align indentation for non plain_pack situation
                 align_indentation(nspace, block, nIndent, listIndent)
-            data.extend(block)
-    else:
-        data = hy.load(os.path.join(dirname, "head.yaml"))
-        # check if the last line of head.yaml is "observers:"
-        line = data[-1]
-        if "observers:" not in line:
-            print("The last line of head.yaml is not 'observers:'")
-            return
-        # assemble individual observers
-        nspace = hy.strip_indentations(line)[0]
-        for obsname in obslist:
-            obs_block = hy.load(os.path.join(dirname, f"{obsname}/obshead.yaml"))
-            # check if the last line of obshead.yaml is "filters:"
-            line = obs_block[-1]
-            nspace4flt = hy.strip_indentations(line)[0]
-            if "filters:" not in line:
-                print(f"The last line of {obsname}/obshead.yaml is not 'filters:'")
-                return
-            obs_block.pop()  # remove the last "filters:" line, we will add based on pre/prior/post/regular filters
+            observers.extend(block)
 
+    elif level == 2:
+        # assemble individual observers
+        observers = []
+        for obsname in obslist:
+            obs_block = hy.load(os.path.join(dirname, f"{obsname}/obsmain.yaml"))
+
+            filter_type = {
+                "filter": "obs filters",
+                "prefilter": "obs pre filters",
+                "priorfilter": "obs prior filters",
+                "postfilter": "obs post filters",
+            }
             # read filterlist
             filterlist = []
-            # use the "filter_type" dictionary to mark whether the corresponding key has been added
-            filter_type = {
-                "filter": [0, "obs filters:"],
-                "prefilter": [0, "obs pre filters:"],
-                "priorfilter": [0, "obs prior filters:"],
-                "postfilter": [0, "obs post filters:"],
-            }
             with open(os.path.join(dirname, f"{obsname}/filterlist.txt"), 'r') as infile:
                 for line in infile:
                     if line.strip():
                         filterlist.append(line.strip())
             # assemble individual filters
-            for fltfile in filterlist:
+            # find the first data line from the bottom
+            for i in range(len(obs_block) - 1, 0, -1):
+                if obs_block[i].strip() and not obs_block[i].strip().startswith("#"):
+                    rev_pos = i
+                    break
+            nspace4flt = hy.strip_indentations(obs_block[rev_pos])[0]
+            for fltfile in reversed(filterlist):  # reverse the order, so we always insert at pos+1
                 flt_block = hy.load(os.path.join(dirname, f"{obsname}/{fltfile}"))
                 if not plain_pack:
                     align_indentation(nspace4flt, flt_block, nIndent, listIndent)
                 prefix = fltfile.split("_")[0]
-                if filter_type[prefix][0] == 0:  # first time, need to add the corresponding filter key
-                    obs_block.append(' ' * nspace4flt + filter_type[prefix][1])
-                    filter_type[prefix][0] = 1
-                obs_block.extend(flt_block)
+                pos, _ = hy.get_start_pos(obs_block, filter_type[prefix])
+                obs_block[pos+1:pos+1] = flt_block
 
             if not plain_pack:
                 align_indentation(nspace, obs_block, nIndent, listIndent)
-            data.extend(obs_block)
+            observers.extend(obs_block)
 
     # write out the super YAML file
+    data[pos1+1:pos1+1] = observers
     with open(fpath, 'w') as outfile:
         for line in data:
             outfile.write(line + "\n")

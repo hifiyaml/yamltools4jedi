@@ -1,0 +1,8 @@
+filter: Bounds Check
+filter variables:
+- name: airTemperature
+test variables:
+- name: ObsErrorData/airTemperature
+minvalue: 0.0
+action:
+  name: reduce obs space

@@ -189,6 +189,17 @@ def drop(data, querystr):
         del subdata[s]
 
 
+# write_out_filters
+def write_out_filters(key, obs, obspath, dumper, filterlist):
+    if f"obs {key}" in obs.keys():
+        for i, flt in enumerate(obs[f"obs {key}"]):
+            category = flt["filter"].replace(' ', '_')
+            prefix = key.replace(' ', '')[:-1]
+            fpath = f"{obspath}/{prefix}_{i:02}_{category}.yaml"
+            filterlist.append(f"{prefix}_{i:02}_{category}.yaml")
+            dump(flt, fpath=fpath, dumper=dumper)
+
+
 # split JEDI super YAML files into individual observers and/or filters
 def split(fpath, level=1, dirname=".", dumper=""):
     data = load(fpath)
@@ -217,8 +228,37 @@ def split(fpath, level=1, dirname=".", dumper=""):
         for obs in obslist:
             fpath = f'{toppath}/{obs["obs space"]["name"]}.yaml'
             dump(obs, fpath=fpath, dumper=dumper)
-        data["cost function"]["observations"]["observers"] = []
-        dump(data, fpath=f'{toppath}/head.yaml', dumper=dumper)
+
+    elif level == 2:  # split to indiviudal observers and filters
+        for obs in obslist:
+            obspath = f'{toppath}/{obs["obs space"]["name"]}'
+            os.makedirs(obspath, exist_ok=True)
+
+            # write out filters
+            filterlist = []
+            write_out_filters("filters", obs, obspath, dumper, filterlist)
+            write_out_filters("pre filters", obs, obspath, dumper, filterlist)
+            write_out_filters("prior filters", obs, obspath, dumper, filterlist)
+            write_out_filters("post filters", obs, obspath, dumper, filterlist)
+            # write out filterlist.txt
+            with open(f"{obspath}/filterlist.txt", 'w') as outfile:
+                for item in filterlist:
+                    outfile.write(f"{item}\n")
+
+            if "obs filters" in obs.keys():
+                obs["obs filters"] = []
+            if "obs pre filters" in obs.keys():
+                obs["obs pre filters"] = []
+            if "obs prior filters" in obs.keys():
+                obs["obs prior filters"] = []
+            if "obs post filters" in obs.keys():
+                obs["obs post filters"] = []
+            fpath = f'{obspath}/obsmain.yaml'
+            dump(obs, fpath=fpath, dumper=dumper)
+
+    # write main.yaml
+    data["cost function"]["observations"]["observers"] = []
+    dump(data, fpath=f'{toppath}/main.yaml', dumper=dumper)
 
 
 # pack individual observers, filters into one super YAML file
@@ -238,11 +278,37 @@ def pack(dirname, fpath, dumper=""):
         print(f"Neither {obslist[0]}.yaml nor {obslist[0]}/ found")
         return
 
+    data = load(os.path.join(dirname, "main.yaml"))
     if level == 1:
-        data = load(os.path.join(dirname, "head.yaml"))
         observers = []
         for obsname in obslist:
             obs = load(os.path.join(dirname, f"{obsname}.yaml"))
             observers.append(obs)
-        data["cost function"]["observations"]["observers"] = observers
-        dump(data, fpath=fpath, dumper=dumper)
+
+    elif level == 2:
+        observers = []
+        for obsname in obslist:
+            obs = load(os.path.join(dirname, f"{obsname}/obsmain.yaml"))
+
+            filter_type = {
+                "filter": "obs filters",
+                "prefilter":  "obs pre filters",
+                "priorfilter":  "obs prior filters",
+                "postfilter":  "obs post filters",
+            }
+            # read filterlist
+            filterlist = []
+            with open(os.path.join(dirname, f"{obsname}/filterlist.txt"), 'r') as infile:
+                for line in infile:
+                    if line.strip():
+                        filterlist.append(line.strip())
+            # assemble individual filters
+            for fltfile in filterlist:
+                flt_block = load(os.path.join(dirname, f"{obsname}/{fltfile}"))
+                prefix = fltfile.split("_")[0]
+                obs[filter_type[prefix]].append(flt_block)
+            # append obs to observers
+            observers.append(obs)
+
+    data["cost function"]["observations"]["observers"] = observers
+    dump(data, fpath=fpath, dumper=dumper)
