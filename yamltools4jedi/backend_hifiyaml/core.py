@@ -209,10 +209,16 @@ def get_all_obs(data, shallow=False):
     end = len(data)
 
     while cur < end:
+        found = False
         for i in range(cur, end):
             if "- obs space:" in data[i]:
                 cur = i
+                found = True
                 break
+
+        # if no more "- obs space:" found, break the while loop
+        if not found:
+            break
 
         name = data[cur + 1].split(":")[1].strip()  # "name:" is expected to follow "- obs space:"
         next_one = hy.next_pos(data, cur)
