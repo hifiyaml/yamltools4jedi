@@ -229,7 +229,7 @@ def split(fpath, level=1, dirname=".", dumper=""):
             fpath = f'{toppath}/{obs["obs space"]["name"]}.yaml'
             dump(obs, fpath=fpath, dumper=dumper)
 
-    elif level == 2:  # split to indiviudal observers and filters
+    elif level == 2:  # split to individual observers and filters
         for obs in obslist:
             obspath = f'{toppath}/{obs["obs space"]["name"]}'
             os.makedirs(obspath, exist_ok=True)
@@ -269,7 +269,7 @@ def pack(dirname, fpath, dumper=""):
             if line.strip():
                 obslist.append(line.strip())
 
-    # check it is level1 or lelve2 split
+    # check it is level1 or level2 split
     if os.path.isfile(os.path.join(dirname, f"{obslist[0]}.yaml")):
         level = 1
     elif os.path.isdir(os.path.join(dirname, f"{obslist[0]}")):

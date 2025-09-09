@@ -430,7 +430,7 @@ plain_pack: ignore all indentation settings, pack as-is;
             if line.strip():
                 obslist.append(line.strip())
 
-    # check it is level1 or lelve2 split
+    # check it is level1 or level2 split
     if os.path.isfile(os.path.join(dirname, f"{obslist[0]}.yaml")):
         level = 1
     elif os.path.isdir(os.path.join(dirname, f"{obslist[0]}")):
@@ -447,7 +447,7 @@ plain_pack: ignore all indentation settings, pack as-is;
         observers = []
         for obsname in obslist:
             block = hy.load(os.path.join(dirname, f"{obsname}.yaml"))
-            if not plain_pack:  # only align indentation for non plain_pack situation
+            if not plain_pack:  # only align indentation for non-plain_pack situation
                 align_indentation(nspace, block, nIndent, listIndent)
             observers.extend(block)
 
