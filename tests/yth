@@ -62,7 +62,7 @@ elif operator == "modify":
     hy.dump(data)
 
 elif operator == "split":
-    yt.split(yfile, level=split_level, clean_extra_indentations=dedent)
+    yt.split(yfile, level=split_level, do_dedent=dedent)
 
 elif operator == "pack":
     yt.pack(dirname, fpath, listIndent=listIndent, plain_pack=plain_pack)

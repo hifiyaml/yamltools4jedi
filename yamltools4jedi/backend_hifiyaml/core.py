@@ -279,7 +279,7 @@ def get_all_obs(data, shallow=False):
 
 
 # write_out_filters
-def write_out_filters(key, obs, obspath, clean_extra_indentations, filterlist):
+def write_out_filters(key, obs, obspath, do_dedent, filterlist):
     if obs[key]:
         first = obs[key][0]["block"][0]
         nspace = hy.strip_indentations(first)[0]  # get the extra number of indentations
@@ -290,7 +290,7 @@ def write_out_filters(key, obs, obspath, clean_extra_indentations, filterlist):
             filterlist.append(f"{prefix}_{i:02}_{category}.yaml")
             with open(fpath, 'w') as outfile:
                 for line in dcFilter["block"]:
-                    if clean_extra_indentations:
+                    if do_dedent:
                         nspace2, _, line2 = hy.strip_indentations(line)
                         if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
                             line = line2
@@ -300,7 +300,7 @@ def write_out_filters(key, obs, obspath, clean_extra_indentations, filterlist):
 
 
 # split a super YAML files to individual observers/filters
-def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
+def split(fpath, level=1, dirname=".", do_dedent=False):
     data = hy.load(fpath)
     basename = os.path.basename(fpath)
     # dirname is the top level of the split results, default to current directory
@@ -335,7 +335,7 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
             nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
             with open(fpath, 'w') as outfile:
                 for line in obs["block"]:
-                    if clean_extra_indentations:
+                    if do_dedent:
                         nspace2, _, line2 = hy.strip_indentations(line)
                         if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
                             line = line2
@@ -358,7 +358,7 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
                 nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
                 for i in range(obs["pos1"], ohead_end + 1):
                     line = data[i]
-                    if clean_extra_indentations:
+                    if do_dedent:
                         nspace2, _, line2 = hy.strip_indentations(line)
                         if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
                             line = line2
@@ -368,10 +368,10 @@ def split(fpath, level=1, dirname=".", clean_extra_indentations=False):
 
             # write out filters
             filterlist = []
-            write_out_filters("filters", obs, obspath, clean_extra_indentations, filterlist)
-            write_out_filters("pre filters", obs, obspath, clean_extra_indentations, filterlist)
-            write_out_filters("prior filters", obs, obspath, clean_extra_indentations, filterlist)
-            write_out_filters("post filters", obs, obspath, clean_extra_indentations, filterlist)
+            write_out_filters("filters", obs, obspath, do_dedent, filterlist)
+            write_out_filters("pre filters", obs, obspath, do_dedent, filterlist)
+            write_out_filters("prior filters", obs, obspath, do_dedent, filterlist)
+            write_out_filters("post filters", obs, obspath, do_dedent, filterlist)
             # write out filterlist.txt
             with open(f"{obspath}/filterlist.txt", 'w') as outfile:
                 for item in filterlist:
@@ -409,7 +409,7 @@ fpath:   the target YAML file path
 nIndent: how many spaces for changing indentation level
 listIndent: whether to indent lists
 plain_pack: ignore all indentation settings, pack as-is;
-  it can replicate the original YAML file splitted with clean_extra_indentations=False
+  it can replicate the original YAML file splitted with do_dedent=False
     '''
     # read obslist
     obslist = []
