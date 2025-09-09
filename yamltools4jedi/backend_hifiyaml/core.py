@@ -374,8 +374,7 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
     # write main.yaml
     pos1, _ = hy.get_start_pos(data, "observations/observers")
     pos2 = hy.next_pos(data, pos1)
-    _, spaces, _ = hy.strip_indentations(data[pos1+1])  # the "observers:" line
-    data[pos1+1:pos2] = []
+    data[pos1+1:pos2] = []  # keep the "observers:" line
     with open(f'{toppath}/main.yaml', 'w') as outfile:
         for i in range(len(data)):
             outfile.write(data[i] + '\n')
@@ -435,11 +434,11 @@ plain_pack: ignore all indentation settings, pack as-is;
         pos1, _ = hy.get_start_pos(data, "observations/observers")
 
         # assemble individual observers
-        observers = []
         nspace = hy.strip_indentations(data[pos1])[0]
+        observers = []
         for obsname in obslist:
             block = hy.load(os.path.join(dirname, f"{obsname}.yaml"))
-            if not plain_pack:  # only aligh indentation for non plain_pack situation
+            if not plain_pack:  # only align indentation for non plain_pack situation
                 align_indentation(nspace, block, nIndent, listIndent)
             observers.extend(block)
         data[pos1+1:pos1+1] = observers
