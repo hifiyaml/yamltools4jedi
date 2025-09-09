@@ -278,30 +278,26 @@ def pack(dirname, fpath, dumper=""):
         print(f"Neither {obslist[0]}.yaml nor {obslist[0]}/ found")
         return
 
+    data = load(os.path.join(dirname, "main.yaml"))
     if level == 1:
-        data = load(os.path.join(dirname, "main.yaml"))
         observers = []
         for obsname in obslist:
             obs = load(os.path.join(dirname, f"{obsname}.yaml"))
             observers.append(obs)
-        data["cost function"]["observations"]["observers"] = observers
-        dump(data, fpath=fpath, dumper=dumper)
 
     elif level == 2:
-        data = load(os.path.join(dirname, "main.yaml"))
         observers = []
         for obsname in obslist:
             obs = load(os.path.join(dirname, f"{obsname}/obsmain.yaml"))
 
-            # read filterlist
-            filterlist = []
-            # use the "filter_type" dictionary to mark whether the corresponding key has been added
             filter_type = {
                 "filter": "obs filters",
                 "prefilter":  "obs pre filters",
                 "priorfilter":  "obs prior filters",
                 "postfilter":  "obs post filters",
             }
+            # read filterlist
+            filterlist = []
             with open(os.path.join(dirname, f"{obsname}/filterlist.txt"), 'r') as infile:
                 for line in infile:
                     if line.strip():
@@ -314,5 +310,5 @@ def pack(dirname, fpath, dumper=""):
             # append obs to observers
             observers.append(obs)
 
-        data["cost function"]["observations"]["observers"] = observers
-        dump(data, fpath=fpath, dumper=dumper)
+    data["cost function"]["observations"]["observers"] = observers
+    dump(data, fpath=fpath, dumper=dumper)
