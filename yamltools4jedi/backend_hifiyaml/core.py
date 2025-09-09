@@ -432,18 +432,18 @@ plain_pack: ignore all indentation settings, pack as-is;
 
     if level == 1:
         data = hy.load(os.path.join(dirname, "main.yaml"))
-        # check if the last line of main.yaml is "observers:"
-        line = data[-1]
-        if "observers:" not in line:
-            print("The last line of main.yaml is not 'observers:'")
-            return
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+
         # assemble individual observers
-        nspace = hy.strip_indentations(line)[0]
+        observers = []
+        nspace = hy.strip_indentations(data[pos1])[0]
         for obsname in obslist:
             block = hy.load(os.path.join(dirname, f"{obsname}.yaml"))
             if not plain_pack:  # only aligh indentation for non plain_pack situation
                 align_indentation(nspace, block, nIndent, listIndent)
-            data.extend(block)
+            observers.extend(block)
+        data[pos1+1:pos1+1] = observers
+
     else:
         data = hy.load(os.path.join(dirname, "main.yaml"))
         # check if the last line of main.yaml is "observers:"
