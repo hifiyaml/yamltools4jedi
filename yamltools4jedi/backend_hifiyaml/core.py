@@ -317,12 +317,6 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
         shutil.move(toppath, savedir)
     os.makedirs(toppath, exist_ok=True)
 
-    # write main.yaml
-    yhead_end, _ = hy.get_start_pos(data, "cost function/observations/observers")
-    with open(f'{toppath}/main.yaml', 'w') as outfile:
-        for i in range(yhead_end + 1):
-            outfile.write(data[i] + '\n')
-
     # write observers ( and filters if split level = 2 )
     dcObs = get_all_obs(data)
     with open(f"{toppath}/obslist.txt", 'w') as outfile:
@@ -376,6 +370,15 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
             with open(f"{obspath}/filterlist.txt", 'w') as outfile:
                 for item in filterlist:
                     outfile.write(f"{item}\n")
+
+    # write main.yaml
+    pos1, _ = hy.get_start_pos(data, "observations/observers")
+    pos2 = hy.next_pos(data, pos1)
+    _, spaces, _ = hy.strip_indentations(data[pos1+1])  # the "observers:" line
+    data[pos1+1:pos2] = []
+    with open(f'{toppath}/main.yaml', 'w') as outfile:
+        for i in range(len(data)):
+            outfile.write(data[i] + '\n')
 
 
 # align the indentation in data based on a target nspace, nIdent, listIndent settings.

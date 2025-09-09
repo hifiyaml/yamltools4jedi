@@ -228,8 +228,6 @@ def split(fpath, level=1, dirname=".", dumper=""):
         for obs in obslist:
             fpath = f'{toppath}/{obs["obs space"]["name"]}.yaml'
             dump(obs, fpath=fpath, dumper=dumper)
-        data["cost function"]["observations"]["observers"] = []
-        dump(data, fpath=f'{toppath}/main.yaml', dumper=dumper)
 
     elif level == 2:  # split to indiviudal observers and filters
         for obs in obslist:
@@ -257,8 +255,10 @@ def split(fpath, level=1, dirname=".", dumper=""):
                 obs["obs post filters"] = []
             fpath = f'{obspath}/obsmain.yaml'
             dump(obs, fpath=fpath, dumper=dumper)
-        data["cost function"]["observations"]["observers"] = []
-        dump(data, fpath=f'{toppath}/main.yaml', dumper=dumper)
+
+    # write main.yaml
+    data["cost function"]["observations"]["observers"] = []
+    dump(data, fpath=f'{toppath}/main.yaml', dumper=dumper)
 
 
 # pack individual observers, filters into one super YAML file
