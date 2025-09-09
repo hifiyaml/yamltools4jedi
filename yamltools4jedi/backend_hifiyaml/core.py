@@ -358,12 +358,6 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
             obspath = f"{toppath}/{name}"
             os.makedirs(obspath, exist_ok=True)
 
-            # find the the end of the observer head
-            for i in range(obs["pos1"], obs["pos2"]):
-                if any(x in data[i] for x in ("obs filters:", "obs pre filters:", "obs prior filters:", "obs post filters:")):
-                    ohead_end = i
-                    break
-
             # write out filters
             filterlist = []
             write_out_filters("filters", obs, obspath, do_dedent, filterlist)
@@ -476,6 +470,12 @@ plain_pack: ignore all indentation settings, pack as-is;
                     if line.strip():
                         filterlist.append(line.strip())
             # assemble individual filters
+            # find the first data line from the bottom
+            for i in range(len(obs_block) - 1, 0, -1):
+                if obs_block[i].strip() and not obs_block[i].strip().startswith("#"):
+                    rev_pos = i
+                    break
+            nspace4flt = hy.strip_indentations(obs_block[rev_pos])[0]
             for fltfile in reversed(filterlist):  # reverse the order, so we always insert at pos+1
                 flt_block = hy.load(os.path.join(dirname, f"{obsname}/{fltfile}"))
                 if not plain_pack:
