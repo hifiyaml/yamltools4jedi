@@ -9,20 +9,20 @@ here = os.path.dirname(__file__)
 yamltools_path = os.path.join(here, "..")
 if yamltools_path not in sys.path:
     sys.path.insert(0, yamltools_path)
-import yamltools4jedi.backend_hifiyaml as yt  # noqa: E402
+import yamltools4jedi.backend_hifiyaml as yj  # noqa: E402
 
 args = sys.argv
 nargs = len(args) - 1
 if nargs < 2:
-    print(f"{os.path.basename(args[0])} <file> <dump|drop|modify|split|pack> <querystr> [newblock_file]")
+    print(f"{os.path.basename(args[0])} <file> <dump|drop|modify|split|split2|pack> [querystr] [newblock_file]")
     exit()
 
-dedent = os.getenv("YT_DEDENT", "False").upper() == "TRUE"
-split_level = int(os.getenv("YT_SPLIT_LEVEL", "1"))
-listIndent = os.getenv("YT_LIST_INDENT", "False").upper() == "TRUE"
-plain_pack = os.getenv("YT_PLAIN_PACK", "True").upper() == "TRUE"
+dedent = os.getenv("YJ_DEDENT", "False").upper() == "TRUE"
+split_level = int(os.getenv("YJ_SPLIT_LEVEL", "1"))
+listIndent = os.getenv("YJ_LIST_INDENT", "False").upper() == "TRUE"
+plain_pack = os.getenv("YJ_PLAIN_PACK", "True").upper() == "TRUE"
 
-newblock_file, querystr = "", ""
+newblock_file, querystr, fpath = "", "", ""
 
 yfile = args[1]
 operator = args[2]
@@ -40,8 +40,6 @@ elif operator == "pack":  # pack operator
     dirname = yfile
     if nargs > 2:
         fpath = args[3]
-    if not dirname or not fpath:
-        print("need dirname and fpath for the pack operator")
 
 if operator != "pack":
     data = hy.load(yfile)
@@ -62,10 +60,17 @@ elif operator == "modify":
     hy.dump(data)
 
 elif operator == "split":
-    yt.split(yfile, level=split_level, do_dedent=dedent)
+    yj.split(yfile, level=split_level, do_dedent=dedent)
+
+elif operator == "split2":
+    yj.split(yfile, level=2, do_dedent=dedent)
+    print(f"Done, split files are availabe under split.{yfile}/")
 
 elif operator == "pack":
-    yt.pack(dirname, fpath, listIndent=listIndent, plain_pack=plain_pack)
+    if not fpath:
+        fpath = "pack." + dirname.rstrip('/').replace("split.", "")
+    yj.pack(dirname, fpath, listIndent=listIndent, plain_pack=plain_pack)
+    print(f"Done, the final packed file: {fpath}")
 
 else:
     hy.printd(f"unknown operator: {operator}")
