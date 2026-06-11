@@ -1,5 +1,6 @@
 import hifiyaml as hy
 import os
+import re
 import shutil
 import sys
 
@@ -21,6 +22,18 @@ def list_to_delimited_string(lst, spaces='  ', delimiter=', ', elements_per_line
 def printd(*parms):
     msg = " ".join(str(p) for p in parms)
     sys.stderr.write(msg + "\n")
+
+
+# write a YAML block to a file with optional dedenting
+def write_block(outfile, block, do_dedent, nspace):
+    for line in block:
+        if do_dedent:
+            nspace2, _, line2 = hy.strip_indentations(line)
+            if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
+                line = line2
+            else:
+                line = line[nspace:]
+        outfile.write(line + "\n")
 
 
 # load the convinfo file, return dcConvInfo
@@ -86,6 +99,8 @@ def load_satinfo():
 
 
 # update one satellite anchor
+# Expected anchor line format: _anchor_<cat>: &<sis>_<cat>
+#   e.g., _anchor_channels: &amsua_n15_channels
 def update_sat_anchor(data, dcSatInfo, anchor):
     anchor_cat = anchor[8:]  # anchor category: channels, use_flag, use_flag_clddet, error, obserr_bound_max
     pos1, errmsg = hy.get_start_pos(data, anchor, stop_on_error=False)
@@ -94,7 +109,13 @@ def update_sat_anchor(data, dcSatInfo, anchor):
     pos2 = hy.next_pos(data, pos1)
 
     _, spaces, line = hy.strip_indentations(data[pos1])
-    mysis = line.split('&')[1].strip().split(' ', 1)[0].strip()[:-len(f'{anchor_cat}_')]  # get the SIS id
+    # Extract SIS id from anchor format: _anchor_<cat>: &<sis>_<cat>
+    match = re.search(r'&(.+)_' + re.escape(anchor_cat) + r'\b', line)
+    if match:
+        mysis = match.group(1)
+    else:
+        sys.stderr.write(f"WARNING: cannot parse SIS from anchor line: {line}\n")
+        return
     pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
     if len(dcSatInfo[mysis][anchor_cat]) < 100:
         elements_per_line = 10
@@ -122,8 +143,14 @@ def update_sat_anchors(data, dcInfo):
 #  1. if solver, change the distribution from RoundRobin to Halo
 #  2. transfer the obsdataout obsfile to obsdatain
 #  3. if post, remove the "reduce obs space" actions and "temporal thinning" filters
-# be sure to pass the whole list instead of a list slice
-#   for example, getkf_observer_tweak(data[i:j]) will not return an updated list
+#
+# WARNING: This function modifies `data` IN-PLACE.
+#   You MUST pass the actual list object, NOT a slice.
+#   A slice like data[i:j] creates a COPY — mutations won't propagate back.
+#   Correct usage:
+#     block = data[obs["pos1"]:obs["pos2"]]  # this IS a new list
+#     getkf_observer_tweak(block, "solver")  # modifies `block` in-place
+#     # then use `block` directly (e.g., output.extend(block))
 def getkf_observer_tweak(data, getkf_type):
     if getkf_type == "solver":  # solver cannot use RoundRobin
         for i in range(0, len(data)):
@@ -226,7 +253,17 @@ def get_all_obs(data, shallow=False):
         if not found:
             break
 
-        name = data[cur + 1].split(":")[1].strip()  # "name:" is expected to follow "- obs space:"
+        # find the "name:" line (skip any comments or blank lines after "- obs space:")
+        name = None
+        for ni in range(cur + 1, min(cur + 10, end)):  # search for "name:" within the next 10 lines
+            stripped = data[ni].strip()
+            if stripped.startswith('#') or not stripped:
+                continue
+            if stripped.startswith('name:'):
+                name = data[ni].split(":", 1)[1].strip()
+                break
+        if name is None:
+            name = f"unknown_obs_at_line_{cur}"
         next_one = hy.next_pos(data, cur)
 
         # check if this is a satellite radiance observer
@@ -301,14 +338,7 @@ def write_out_filters(key, obs, obspath, do_dedent, filterlist):
             fpath = f"{obspath}/{prefix}_{i:02}_{category}.yaml"
             filterlist.append(f"{prefix}_{i:02}_{category}.yaml")
             with open(fpath, 'w') as outfile:
-                for line in dcFilter["block"]:
-                    if do_dedent:
-                        nspace2, _, line2 = hy.strip_indentations(line)
-                        if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
-                            line = line2
-                        else:
-                            line = line[nspace:]
-                    outfile.write(line + "\n")
+                write_block(outfile, dcFilter["block"], do_dedent, nspace)
         # remove "key" section from the obs["block"]
         pos1, _ = hy.get_start_pos(obs["block"], f"obs {key}")
         pos2 = hy.next_pos(obs["block"], pos1)
@@ -320,7 +350,7 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
     data = hy.load(fpath)
     basename = os.path.basename(fpath)
     # dirname is the top level of the split results, default to current directory
-    dirname.rsplit("/")  # remove trailing /  if any
+    dirname = dirname.rstrip("/")  # remove trailing /  if any
     toppath = f"{dirname}/split.{basename}"
 
     # if the dir exists, find an available dir name to backup old files first
@@ -344,14 +374,7 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
             fpath = f"{toppath}/{name}.yaml"
             nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
             with open(fpath, 'w') as outfile:
-                for line in obs["block"]:
-                    if do_dedent:
-                        nspace2, _, line2 = hy.strip_indentations(line)
-                        if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
-                            line = line2
-                        else:
-                            line = line[nspace:]
-                    outfile.write(line + "\n")
+                write_block(outfile, obs["block"], do_dedent, nspace)
 
     else:  # split to individual observers and filters
         for name, obs in dcObs.items():
@@ -372,14 +395,7 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
             # write obsmain.yaml
             with open(f"{obspath}/obsmain.yaml", 'w') as outfile:
                 nspace = hy.strip_indentations(obs["block"][0])[0]  # get the extra number of indentations
-                for line in obs["block"]:
-                    if do_dedent:
-                        nspace2, _, line2 = hy.strip_indentations(line)
-                        if nspace2 < nspace and line2.startswith("#"):  # indentation-inconsistent comment lines
-                            line = line2
-                        else:
-                            line = line[nspace:]
-                    outfile.write(line + "\n")
+                write_block(outfile, obs["block"], do_dedent, nspace)
 
     # write main.yaml
     pos1, _ = hy.get_start_pos(data, "observations/observers")
