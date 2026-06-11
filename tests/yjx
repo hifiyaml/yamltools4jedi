@@ -9,7 +9,7 @@ here = os.path.dirname(__file__)
 yamltools_path = os.path.join(here, "..")
 if yamltools_path not in sys.path:
     sys.path.insert(0, yamltools_path)
-import yamltools4jedi.backend_hifiyaml as yt  # noqa: E402
+import yamltools4jedi.backend_hifiyaml as yj  # noqa: E402
 
 args = sys.argv
 nargs = len(args) - 1
@@ -19,9 +19,9 @@ if nargs < 1:
 yfile = args[1]
 data = hy.load(yfile)
 
-use_conv_sat_info = (os.getenv("YT_USE_CONV_SAT_INFO", "True").upper() != "FALSE")
-GETKF_TYPE = os.getenv("YT_GETKF_TYPE", "observer")
-ytype = os.getenv("YT_YTYPE", "jedivar")
+use_conv_sat_info = (os.getenv("YJ_USE_CONV_SAT_INFO", "True").upper() != "FALSE")
+GETKF_TYPE = os.getenv("YJ_GETKF_TYPE", "observer")
+ytype = os.getenv("YJ_YTYPE", "jedivar")
 
 # tweaks getkf.yaml from the observer mode to the solver mode
 solver_driver_str = '''
@@ -38,8 +38,8 @@ if ytype == "getkf" and GETKF_TYPE == "solver":
 
 # keep/drop/passivate observations based on convifo/satinfo
 if use_conv_sat_info:
-    dcConvInfo = yt.load_convinfo()
-    dcSatInfo = yt.load_satinfo()
+    dcConvInfo = yj.load_convinfo()
+    dcSatInfo = yj.load_satinfo()
     if not dcConvInfo:
         sys.stderr.write("INFO: no convinfo, or empty/corrupt convinfo\n")
     if not dcSatInfo:
@@ -49,18 +49,18 @@ if use_conv_sat_info:
 head_end, _ = hy.get_start_pos(data, "observations/observers")
 output = data[0:head_end + 1]
 # assemble observers
-dcObs = yt.get_all_obs(data, shallow=True)
+dcObs = yj.get_all_obs(data, shallow=True)
 for name, observer in dcObs.items():
     sname = observer["sname"]
     tmp = data[observer["pos1"]:observer["pos2"]]  # a shallow copy when slicing
     if ytype == "getkf" and (GETKF_TYPE == "solver" or GETKF_TYPE == "post"):
-        yt.getkf_observer_tweak(tmp, GETKF_TYPE)
+        yj.getkf_observer_tweak(tmp, GETKF_TYPE)
 
     if use_conv_sat_info:
         if observer["is_sat_radiance"]:  # check against satinfo
             for sis, info in dcSatInfo.items():
                 if sis == sname:
-                    yt.update_sat_anchors(tmp, dcSatInfo)
+                    yj.update_sat_anchors(tmp, dcSatInfo)
                     output.extend(tmp)
                     break
         else:  # check against convinfo
