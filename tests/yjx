@@ -9,7 +9,7 @@ here = os.path.dirname(__file__)
 yamltools_path = os.path.join(here, "..")
 if yamltools_path not in sys.path:
     sys.path.insert(0, yamltools_path)
-import yamltools4jedi.backend_hifiyaml as yj  # noqa: E402
+import yamltools4jedi as yj  # noqa: E402
 
 args = sys.argv
 nargs = len(args) - 1

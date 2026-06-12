@@ -1,6 +1,6 @@
 [project]
 name = "yamltools4jedi"
-version = "0.1.5"
+version = "0.1.7"
 description = "YAML tools to facilitate reading and editing JEDI super YAML files"
 readme = "README.md"
 authors = [
@@ -17,6 +17,9 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+script-files = ["tests/yj"]
 
 [project.urls]
 Homepage = "https://github.com/hifiyaml/yamltools4jedi/wiki"
