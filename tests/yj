@@ -62,10 +62,11 @@ elif operator == "modify":
 
 elif operator == "split":
     yj.split(yfile, level=split_level, do_dedent=dedent)
+    print(f"Done, split files are availabe under split.{yfile}/")
 
 elif operator == "split2":
     yj.split(yfile, level=2, do_dedent=dedent)
-    print(f"Done, split files are availabe under split.{yfile}/")
+    print(f"Done, split2 files are availabe under split.{yfile}/")
 
 elif operator == "pack":
     if not fpath:

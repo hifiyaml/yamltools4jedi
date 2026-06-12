@@ -1,6 +1,6 @@
 [project]
 name = "yamltools4jedi"
-version = "0.1.6"
+version = "0.1.7"
 description = "YAML tools to facilitate reading and editing JEDI super YAML files"
 readme = "README.md"
 authors = [
