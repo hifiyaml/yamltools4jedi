@@ -3,13 +3,14 @@ import os
 import sys
 import hifiyaml as hy
 
-# for yamltools tests, we use the packages in this repo
-#   instead of the installed ones
-here = os.path.dirname(__file__)
+# Use local package when running from the repo
+here = os.path.dirname(os.path.abspath(__file__))
 yamltools_path = os.path.join(here, "..")
-if yamltools_path not in sys.path:
-    sys.path.insert(0, yamltools_path)
-import yamltools4jedi.backend_hifiyaml as yj  # noqa: E402
+if os.path.exists(os.path.join(yamltools_path, "yamltools4jedi", "__init__.py")):
+    if yamltools_path not in sys.path:
+        sys.path.insert(0, yamltools_path)
+
+import yamltools4jedi as yj  # noqa: E402
 
 args = sys.argv
 nargs = len(args) - 1
