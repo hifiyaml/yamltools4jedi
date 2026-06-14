@@ -7,33 +7,33 @@ rm -rf tmp
 mkdir -p tmp
 
 export YJ_DEDENT=true
-./yj demo.yaml dump "cost function/observations/observers/0/obs space" > tmp/ctest1.yaml
+./yj dump demo.yaml "cost function/observations/observers/0/obs space" > tmp/ctest1.yaml
 export YJ_DEDENT=fase
-./yj demo.yaml dump "cost function/observations/observers/0/obs space" > tmp/ctest2.yaml
+./yj dump demo.yaml "cost function/observations/observers/0/obs space" > tmp/ctest2.yaml
 
-./yj demo.yaml drop "cost function/observations/observers" > tmp/no_obs.yaml
+./yj drop demo.yaml "cost function/observations/observers" > tmp/no_obs.yaml
 
-./yj demo.yaml modify "output/filename" "filename: ana.nc"  > tmp/ana.yaml
-./yj demo.yaml modify "cost function/background error/components/0/covariance" bec_bump.yaml > tmp/becbump.yaml
+./yj modify demo.yaml "output/filename" "filename: ana.nc"  > tmp/ana.yaml
+./yj modify demo.yaml "cost function/background error/components/0/covariance" bec_bump.yaml > tmp/becbump.yaml
 
 export YJ_DEDENT=true
 export YJ_SPLIT_LEVEL=1
-./yj demo.yaml split
+./yj split demo.yaml
 mv split1.demo.yaml tmp/split.default_1.0
 
 export YJ_DEDENT=fase
 export YJ_SPLIT_LEVEL=1
-./yj demo.yaml split
+./yj split demo.yaml
 mv split1.demo.yaml tmp/split.default_1.1
 
 export YJ_DEDENT=fase
 export YJ_SPLIT_LEVEL=2
-./yj demo.yaml split
+./yj split demo.yaml
 mv split2.demo.yaml tmp/split.default_2
 
 export YJ_LIST_INDENT=false
 export YJ_PLAIN_PACK=true
-./yj tmp/split.default_1.1 pack tmp/pack1.1.yaml
+./yj pack tmp/split.default_1.1/  tmp/pack1.1.yaml
 diff tmp/pack1.1.yaml demo.yaml
 if (( $? == 0 )); then
   echo "GOOD: split and re-pack generate the identical YAML file"
@@ -43,7 +43,7 @@ fi
 
 export YJ_DEDENT=fase
 export YJ_PLAIN_PACK=true
-./yj tmp/split.default_2 pack  tmp/pack2.yaml
+./yj pack tmp/split.default_2  tmp/pack2.yaml
 diff tmp/pack2.yaml demo.yaml
 if (( $? == 0 )); then
   echo "GOOD: split and re-pack generate the identical YAML file"

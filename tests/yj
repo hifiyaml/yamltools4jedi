@@ -17,7 +17,7 @@ import yamltools4jedi as yj  # noqa: E402
 args = sys.argv
 nargs = len(args) - 1
 if nargs < 2:
-    print(f"{os.path.basename(args[0])} <file|dir> <dump|drop|modify|split1|split2|pack|compare1|compare2> [querystr|file] [newblock_file]")
+    print(f"{os.path.basename(args[0])} <dump|drop|modify|split1|split2|pack|compare1|compare2> <file|dir> [querystr|file] [newblock_file]")
     print("check https://github.com/hifiyaml/yamltools4jedi/wiki/yj for more details")
     exit()
 
@@ -26,13 +26,13 @@ split_level = int(os.getenv("YJ_SPLIT_LEVEL", "1"))
 listIndent = os.getenv("YJ_LIST_INDENT", "False").upper() == "TRUE"
 plain_pack = os.getenv("YJ_PLAIN_PACK", "True").upper() == "TRUE"
 
-newblock_file, querystr, fpath = "", "", ""
+newblock_file, querystr, fpack = "", "", ""
 
-yfile = args[1]
-operator = args[2]
+operator = args[1]
+yfile = args[2]
 if nargs > 2:
     querystr = args[3]
-    fpath = args[3]  # pack operator
+    fpack = args[3]  # pack operator
     yfile2 = args[3] # compare operator
 
 if operator == "modify":
@@ -78,13 +78,13 @@ elif operator == "split2":
     print(f"Done, split2 files are availabe under split2.{yfile}/")
 
 elif operator == "pack":
-    if not fpath:
+    if not fpack:
         if "split1." in dirname:
-            fpath = "pack." + dirname.rstrip('/').replace("split1.", "")
+            fpack = "pack." + dirname.rstrip('/').replace("split1.", "")
         else:
-            fpath = "pack." + dirname.rstrip('/').replace("split2.", "")
-    yj.pack(dirname, fpath, listIndent=listIndent, plain_pack=plain_pack)
-    print(f"Done, the final packed file: {fpath}")
+            fpack = "pack." + dirname.rstrip('/').replace("split2.", "")
+    yj.pack(dirname, fpack, listIndent=listIndent, plain_pack=plain_pack)
+    print(f"Done, the final packed file: {fpack}")
 
 elif operator == "compare1":  # compare by observers
     tmpdir = "tmp_yamltoos4jedi_compare"
@@ -111,6 +111,7 @@ for myfile in {yfile}/*; do
   filename=$(basename ${{myfile}})
   if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
     vimdiff ${{myfile}} {yfile2}/${{filename}} || exit $?
+    echo "searching for the next batch of differences ..."
   fi
 done
         ''')
@@ -143,12 +144,14 @@ for mydir in {yfile}/*; do
   if [[ ! -d ${{mydir}} ]]; then
     if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{mydir}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
       vimdiff ${{mydir}} {yfile2}/${{filename}} || exit $?
+      echo "searching for the next batch of differences ..."
     fi
   else
     for myfile in ${{mydir}}/*; do
       filename2=$(basename ${{myfile}})
       if [[ -s {yfile2}/${{filename}}/${{filename2}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}}/${{filename2}} 2>1 1>/dev/null; then
         vimdiff ${{myfile}} {yfile2}/${{filename}}/${{filename2}} || exit $?
+        echo "searching for the next batch of differences ..."
       fi
     done
   fi
