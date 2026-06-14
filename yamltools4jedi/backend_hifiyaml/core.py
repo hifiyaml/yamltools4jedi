@@ -346,8 +346,9 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
     data = hy.load(fpath)
     basename = os.path.basename(fpath)
     # dirname is the top level of the split results, default to current directory
-    dirname = dirname.rstrip("/")  # remove trailing /  if any
-    toppath = f"{dirname}/split{level}.{basename}"
+    toppath = dirname.rstrip("/")  # remove trailing /  if any
+    if toppath == ".":  # if no explicit dirname, use 'split{level}.{basename}'
+        toppath = f"./split{level}.{basename}"
 
     # if the dir exists, find an available dir name to backup old files first
     if os.path.exists(toppath):

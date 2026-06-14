@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
+import re
 import sys
 import shutil
 import subprocess
@@ -17,7 +18,8 @@ import yamltools4jedi as yj  # noqa: E402
 args = sys.argv
 nargs = len(args) - 1
 if nargs < 2:
-    print(f"{os.path.basename(args[0])} <dump|drop|modify|split1|split2|pack|compare1|compare2> <file|dir> [querystr|file] [newblock_file]")
+    print(f"Usage: {os.path.basename(args[0])} <operator> <file|dir> [dir|file|obs_str|querystr] [file|newblock(string_or_file)]")
+    print("where 'operator' can be: split1, split2, pack, compare1, compare2, listobs, removeobs, keepobs, dump, drop, modify")
     print("check https://github.com/hifiyaml/yamltools4jedi/wiki/yj for more details")
     exit()
 
@@ -26,18 +28,26 @@ split_level = int(os.getenv("YJ_SPLIT_LEVEL", "1"))
 listIndent = os.getenv("YJ_LIST_INDENT", "False").upper() == "TRUE"
 plain_pack = os.getenv("YJ_PLAIN_PACK", "True").upper() == "TRUE"
 
-newblock_file, querystr, fpack = "", "", ""
+newblock_file, querystr, fpack, yobsout = "", "", "", ""
 
+# ------------------------------------------------------------------------------------------------------------------------------------
+#  process the command line options
+# ------------------------------------------------------------------------------------------------------------------------------------
 operator = args[1]
 yfile = args[2]
+basename = os.path.basename(yfile)
+dirname = f'split{split_level}.{basename}'   # default value for the split operators
 if nargs > 2:
     querystr = args[3]
+    dirname = args[3] # split operators
     fpack = args[3]  # pack operator
-    yfile2 = args[3] # compare operator
+    yfile2 = args[3] # compare operators
+    obs_str = args[3] # listobs, removeobs, keepobs
+if nargs > 3:
+    newblock_file = args[4]  # modify operator
+    yobsout = args[4]  # listobs, removeobs, keepobs, optional
 
 if operator == "modify":
-    if nargs > 3:
-        newblock_file = args[4]
     if not newblock_file:
         print("newblock_file cannot be empty for the modify operator")
     if not querystr:
@@ -45,11 +55,15 @@ if operator == "modify":
 elif operator == "pack":  # pack operator
     dirname = yfile
 
-# load the yaml file for non-pack operations
+# ------------------------------------------------------------------------------------------------------------------------------------
+#  load the yaml file for all non-pack operations; pack will read a directory separately
+# ------------------------------------------------------------------------------------------------------------------------------------
 if operator != "pack":
     data = hy.load(yfile)
 
-# actions for different operators
+# ------------------------------------------------------------------------------------------------------------------------------------
+#  dump, drop, modify, split, split1, split2, pack
+# ------------------------------------------------------------------------------------------------------------------------------------
 if operator == "dump":
     hy.dump(data, querystr, do_dedent=dedent)
 
@@ -66,16 +80,16 @@ elif operator == "modify":
     hy.dump(data)
 
 elif operator == "split":
-    yj.split(yfile, level=split_level, do_dedent=dedent)
-    print(f"Done, split files are availabe under split{split_level}.{yfile}/")
+    yj.split(yfile, level=split_level, dirname=dirname, do_dedent=dedent)
+    print(f"Done, split files are available under {dirname}/")
 
 elif operator == "split1":
-    yj.split(yfile, level=1, do_dedent=dedent)
-    print(f"Done, split1 files are availabe under split1.{yfile}/")
+    yj.split(yfile, level=1, dirname=dirname,  do_dedent=dedent)
+    print(f"Done, split1 files are available under {dirname}/")
 
 elif operator == "split2":
-    yj.split(yfile, level=2, do_dedent=dedent)
-    print(f"Done, split2 files are availabe under split2.{yfile}/")
+    yj.split(yfile, level=2, dirname=dirname, do_dedent=dedent)
+    print(f"Done, split2 files are available under {dirname}/")
 
 elif operator == "pack":
     if not fpack:
@@ -86,17 +100,18 @@ elif operator == "pack":
     yj.pack(dirname, fpack, listIndent=listIndent, plain_pack=plain_pack)
     print(f"Done, the final packed file: {fpack}")
 
+# ------------------------------------------------------------------------------------------------------------------------------------
+# compare1 and compare2
+# ------------------------------------------------------------------------------------------------------------------------------------
 elif operator == "compare1":  # compare by observers
     tmpdir = "tmp_yamltoos4jedi_compare"
     shutil.rmtree(tmpdir, ignore_errors=True)
     os.makedirs(tmpdir, exist_ok=True)
-    yj.split(yfile, level=1, dirname=tmpdir, do_dedent=False)
-    yj.split(yfile2, level=1, dirname=tmpdir, do_dedent=False)
+    yj.split(yfile, level=1, dirname=f"{tmpdir}/{yfile}", do_dedent=False)
+    yj.split(yfile2, level=1, dirname=f"{tmpdir}/{yfile2}", do_dedent=False)
     with open(f'{tmpdir}/compare.sh', 'w') as outfile:
         outfile.write(f'''
 cd {tmpdir}
-mv split1.{yfile} {yfile}
-mv split1.{yfile2} {yfile2}
 cat <<EOF
 A series of vimdiff commands will run to show the differences between common observers
 and the observers existing in one file but not in another
@@ -107,6 +122,7 @@ Use ":cq" to quit the current vimdiff and end this compare1 session
 press Enter to continue ...
 EOF
 read whatever
+echo "searching for the next batch of differences ..."
 for myfile in {yfile}/*; do
   filename=$(basename ${{myfile}})
   if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
@@ -114,6 +130,7 @@ for myfile in {yfile}/*; do
     echo "searching for the next batch of differences ..."
   fi
 done
+echo "Done!"
         ''')
     subprocess.run(["bash", f"{tmpdir}/compare.sh"])
     shutil.rmtree(tmpdir, ignore_errors=True)
@@ -122,13 +139,11 @@ elif operator == "compare2":  # compare by observers/filters
     tmpdir = "tmp_yamltoos4jedi_compare"
     shutil.rmtree(tmpdir, ignore_errors=True)
     os.makedirs(tmpdir, exist_ok=True)
-    yj.split(yfile, level=2, dirname=tmpdir, do_dedent=False)
-    yj.split(yfile2, level=2, dirname=tmpdir, do_dedent=False)
+    yj.split(yfile, level=2, dirname=f"{tmpdir}/{yfile}", do_dedent=False)
+    yj.split(yfile2, level=2, dirname=f"{tmpdir}/{yfile2}", do_dedent=False)
     with open(f'{tmpdir}/compare.sh', 'w') as outfile:
         outfile.write(f'''
 cd {tmpdir}
-mv split2.{yfile} {yfile}
-mv split2.{yfile2} {yfile2}
 cat <<EOF
 A series of vimdiff commands will run to show the differences between common observers/filters
 and the observers/filters existing in one file but not in another
@@ -139,6 +154,7 @@ Use ":cq" to quit the current vimdiff and end this compare2 session
 press Enter to continue ...
 EOF
 read whatever
+echo "searching for the next batch of differences ..."
 for mydir in {yfile}/*; do
   filename=$(basename ${{mydir}})
   if [[ ! -d ${{mydir}} ]]; then
@@ -156,9 +172,61 @@ for mydir in {yfile}/*; do
     done
   fi
 done
+echo "Done!"
         ''')
     subprocess.run(["bash", f"{tmpdir}/compare.sh"])
     shutil.rmtree(tmpdir, ignore_errors=True)
+
+# ------------------------------------------------------------------------------------------------------------------------------------
+# listobs, removeobs, keepobs
+# ------------------------------------------------------------------------------------------------------------------------------------
+elif operator in ("listobs", "removeobs", "keepobs"):  # listobs, removeobs, keepobs
+    if operator == "listobs":
+        shallow = False
+    else:
+        shallow = True
+    dcObs = yj.get_all_obs(data, shallow=shallow)
+    if operator == "listobs":
+        obs_text = ''
+        filter_text = ''
+        for name, observer in dcObs.items():
+            obs_text = obs_text + observer['sname'] + ', '
+            filter_knt = len(observer['pre filters']) + len(observer['filters']) + len(observer['prior filters']) + len(observer['post filters'])
+            filter_text += f'{name.ljust(35)}: {filter_knt} filters\n'
+        nobs = len(dcObs)
+        obs_text = f'{nobs} observers:\n{obs_text.rstrip(", ")}'
+        print(f'{filter_text}\n\n{obs_text}\n')
+    else:
+        pos1, _ = hy.get_start_pos(data, "observations/observers")  # get the YAML head section
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]  # header part, including the line "observers:"
+        # assemble observers
+        obs_list = [myobs.strip() for myobs in re.split(r'[,\s]', obs_str)]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            #  determine whether to keep an observer based on removeobs or keepobs operators and the obs_list
+            if operator == "removeobs":
+                keep = True
+                for myobs in obs_list:
+                    if myobs == sname:
+                        keep = False
+                        break
+            else:  # keepobs
+                keep = False
+                for myobs in obs_list:
+                    if myobs == sname:
+                        keep = True
+                        break
+            # ~~~~~~~~~~~~
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        # ~~~~~~~~
+        # concatenate the trailing part if any
+        output.extend(data[pos2:])
+        if not yobsout:  # output file not specified
+            hy.dump(output)
+        else:
+            hy.dump(output, fpath=yobsout)
 
 else:
     hy.printd(f"unknown operator: {operator}")

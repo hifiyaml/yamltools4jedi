@@ -138,9 +138,9 @@ class TestSplitPack:
     def test_split_level1_pack_roundtrip(self, tmp_path):
         """Split level 1 (no dedent) then pack should reproduce the original."""
         demo_path = os.path.join(here, "demo.yaml")
-        yj.split(demo_path, level=1, dirname=str(tmp_path), do_dedent=False)
-
         split_dir = str(tmp_path / "split1.demo.yaml")
+        yj.split(demo_path, level=1, dirname=split_dir, do_dedent=False)
+
         pack_path = str(tmp_path / "packed.yaml")
         yj.pack(split_dir, pack_path, plain_pack=True)
 
@@ -152,9 +152,9 @@ class TestSplitPack:
     def test_split_level2_pack_roundtrip(self, tmp_path):
         """Split level 2 (no dedent) then pack should reproduce the original."""
         demo_path = os.path.join(here, "demo.yaml")
-        yj.split(demo_path, level=2, dirname=str(tmp_path), do_dedent=False)
-
         split_dir = str(tmp_path / "split2.demo.yaml")
+        yj.split(demo_path, level=2, dirname=split_dir, do_dedent=False)
+
         pack_path = str(tmp_path / "packed.yaml")
         yj.pack(split_dir, pack_path, plain_pack=True)
 
@@ -166,9 +166,9 @@ class TestSplitPack:
     def test_split_level1_dedent(self, tmp_path):
         """Split level 1 with dedent should match ref."""
         demo_path = os.path.join(here, "demo.yaml")
-        yj.split(demo_path, level=1, dirname=str(tmp_path), do_dedent=True)
-
         split_dir = str(tmp_path / "split1.demo.yaml")
+        yj.split(demo_path, level=1, dirname=split_dir, do_dedent=True)
+
         ref_dir = os.path.join(here, "ref_hifiyaml", "split.default_1.0")
         assert filecmp.cmp(
             os.path.join(split_dir, "obslist.txt"),
