@@ -147,10 +147,6 @@ def update_sat_anchors(data, dcInfo):
 # WARNING: This function modifies `data` IN-PLACE.
 #   You MUST pass the actual list object, NOT a slice.
 #   A slice like data[i:j] creates a COPY — mutations won't propagate back.
-#   Correct usage:
-#     block = data[obs["pos1"]:obs["pos2"]]  # this IS a new list
-#     getkf_observer_tweak(block, "solver")  # modifies `block` in-place
-#     # then use `block` directly (e.g., output.extend(block))
 def getkf_observer_tweak(data, getkf_type):
     if getkf_type == "solver":  # solver cannot use RoundRobin
         for i in range(0, len(data)):
