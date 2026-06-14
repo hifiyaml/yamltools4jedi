@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
 import sys
+import shutil
+import subprocess
 import hifiyaml as hy
 
 # Use local package when running from the repo
@@ -15,7 +17,8 @@ import yamltools4jedi as yj  # noqa: E402
 args = sys.argv
 nargs = len(args) - 1
 if nargs < 2:
-    print(f"{os.path.basename(args[0])} <file> <dump|drop|modify|split|split2|pack> [querystr] [newblock_file]")
+    print(f"{os.path.basename(args[0])} <file|dir> <dump|drop|modify|split1|split2|pack|compare1|compare2> [querystr|file] [newblock_file]")
+    print("check https://github.com/hifiyaml/yamltools4jedi/wiki/yj for more details")
     exit()
 
 dedent = os.getenv("YJ_DEDENT", "False").upper() == "TRUE"
@@ -29,6 +32,8 @@ yfile = args[1]
 operator = args[2]
 if nargs > 2:
     querystr = args[3]
+    fpath = args[3]  # pack operator
+    yfile2 = args[3] # compare operator
 
 if operator == "modify":
     if nargs > 3:
@@ -39,12 +44,12 @@ if operator == "modify":
         print("querystr cannot be empty for the modify operator")
 elif operator == "pack":  # pack operator
     dirname = yfile
-    if nargs > 2:
-        fpath = args[3]
 
+# load the yaml file for non-pack operations
 if operator != "pack":
     data = hy.load(yfile)
 
+# actions for different operators
 if operator == "dump":
     hy.dump(data, querystr, do_dedent=dedent)
 
@@ -62,17 +67,95 @@ elif operator == "modify":
 
 elif operator == "split":
     yj.split(yfile, level=split_level, do_dedent=dedent)
-    print(f"Done, split files are availabe under split.{yfile}/")
+    print(f"Done, split files are availabe under split{split_level}.{yfile}/")
+
+elif operator == "split1":
+    yj.split(yfile, level=1, do_dedent=dedent)
+    print(f"Done, split1 files are availabe under split1.{yfile}/")
 
 elif operator == "split2":
     yj.split(yfile, level=2, do_dedent=dedent)
-    print(f"Done, split2 files are availabe under split.{yfile}/")
+    print(f"Done, split2 files are availabe under split2.{yfile}/")
 
 elif operator == "pack":
     if not fpath:
-        fpath = "pack." + dirname.rstrip('/').replace("split.", "")
+        if "split1." in dirname:
+            fpath = "pack." + dirname.rstrip('/').replace("split1.", "")
+        else:
+            fpath = "pack." + dirname.rstrip('/').replace("split2.", "")
     yj.pack(dirname, fpath, listIndent=listIndent, plain_pack=plain_pack)
     print(f"Done, the final packed file: {fpath}")
+
+elif operator == "compare1":  # compare by observers
+    tmpdir = "tmp_yamltoos4jedi_compare"
+    shutil.rmtree(tmpdir, ignore_errors=True)
+    os.makedirs(tmpdir, exist_ok=True)
+    yj.split(yfile, level=1, dirname=tmpdir, do_dedent=False)
+    yj.split(yfile2, level=1, dirname=tmpdir, do_dedent=False)
+    with open(f'{tmpdir}/compare.sh', 'w') as outfile:
+        outfile.write(f'''
+cd {tmpdir}
+mv split1.{yfile} {yfile}
+mv split1.{yfile2} {yfile2}
+cat <<EOF
+A series of vimdiff commands will run to show the differences between common observers
+and the observers existing in one file but not in another
+
+In the vimdiff windows,
+Use ":qa" to quit the current vimdiff and move to the next
+Use ":cq" to quit the current vimdiff and end this compare1 session
+press Enter to continue ...
+EOF
+read whatever
+for myfile in {yfile}/*; do
+  filename=$(basename ${{myfile}})
+  if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
+    vimdiff ${{myfile}} {yfile2}/${{filename}} || exit $?
+  fi
+done
+        ''')
+    subprocess.run(["bash", f"{tmpdir}/compare.sh"])
+    shutil.rmtree(tmpdir, ignore_errors=True)
+
+elif operator == "compare2":  # compare by observers/filters
+    tmpdir = "tmp_yamltoos4jedi_compare"
+    shutil.rmtree(tmpdir, ignore_errors=True)
+    os.makedirs(tmpdir, exist_ok=True)
+    yj.split(yfile, level=2, dirname=tmpdir, do_dedent=False)
+    yj.split(yfile2, level=2, dirname=tmpdir, do_dedent=False)
+    with open(f'{tmpdir}/compare.sh', 'w') as outfile:
+        outfile.write(f'''
+cd {tmpdir}
+mv split2.{yfile} {yfile}
+mv split2.{yfile2} {yfile2}
+cat <<EOF
+A series of vimdiff commands will run to show the differences between common observers/filters
+and the observers/filters existing in one file but not in another
+
+In the vimdiff windows,
+Use ":qa" to quit the current vimdiff and move to the next
+Use ":cq" to quit the current vimdiff and end this compare2 session
+press Enter to continue ...
+EOF
+read whatever
+for mydir in {yfile}/*; do
+  filename=$(basename ${{mydir}})
+  if [[ ! -d ${{mydir}} ]]; then
+    if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{mydir}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
+      vimdiff ${{mydir}} {yfile2}/${{filename}} || exit $?
+    fi
+  else
+    for myfile in ${{mydir}}/*; do
+      filename2=$(basename ${{myfile}})
+      if [[ -s {yfile2}/${{filename}}/${{filename2}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}}/${{filename2}} 2>1 1>/dev/null; then
+        vimdiff ${{myfile}} {yfile2}/${{filename}}/${{filename2}} || exit $?
+      fi
+    done
+  fi
+done
+        ''')
+    subprocess.run(["bash", f"{tmpdir}/compare.sh"])
+    shutil.rmtree(tmpdir, ignore_errors=True)
 
 else:
     hy.printd(f"unknown operator: {operator}")
