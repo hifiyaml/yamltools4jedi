@@ -111,6 +111,7 @@ for myfile in {yfile}/*; do
   filename=$(basename ${{myfile}})
   if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
     vimdiff ${{myfile}} {yfile2}/${{filename}} || exit $?
+    echo "searching for the next batch of differences ..."
   fi
 done
         ''')
@@ -143,12 +144,14 @@ for mydir in {yfile}/*; do
   if [[ ! -d ${{mydir}} ]]; then
     if [[ -s {yfile2}/${{filename}} ]] && ! diff ${{mydir}} {yfile2}/${{filename}} 2>1 1>/dev/null; then
       vimdiff ${{mydir}} {yfile2}/${{filename}} || exit $?
+      echo "searching for the next batch of differences ..."
     fi
   else
     for myfile in ${{mydir}}/*; do
       filename2=$(basename ${{myfile}})
       if [[ -s {yfile2}/${{filename}}/${{filename2}} ]] && ! diff ${{myfile}} {yfile2}/${{filename}}/${{filename2}} 2>1 1>/dev/null; then
         vimdiff ${{myfile}} {yfile2}/${{filename}}/${{filename2}} || exit $?
+        echo "searching for the next batch of differences ..."
       fi
     done
   fi
