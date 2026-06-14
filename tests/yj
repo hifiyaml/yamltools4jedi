@@ -81,15 +81,15 @@ elif operator == "modify":
 
 elif operator == "split":
     yj.split(yfile, level=split_level, dirname=dirname, do_dedent=dedent)
-    print(f"Done, split files are availabe under {dirname}/")
+    print(f"Done, split files are available under {dirname}/")
 
 elif operator == "split1":
     yj.split(yfile, level=1, dirname=dirname,  do_dedent=dedent)
-    print(f"Done, split1 files are availabe under {dirname}/")
+    print(f"Done, split1 files are available under {dirname}/")
 
 elif operator == "split2":
     yj.split(yfile, level=2, dirname=dirname, do_dedent=dedent)
-    print(f"Done, split2 files are availabe under {dirname}/")
+    print(f"Done, split2 files are available under {dirname}/")
 
 elif operator == "pack":
     if not fpack:
@@ -180,7 +180,7 @@ echo "Done!"
 # ------------------------------------------------------------------------------------------------------------------------------------
 # listobs, removeobs, keepobs
 # ------------------------------------------------------------------------------------------------------------------------------------
-elif operator.endswith("obs"):  # listobs, removeobs, keepobs
+elif operator in ("listobs", "removeobs", "keepobs"):  # listobs, removeobs, keepobs
     if operator == "listobs":
         shallow = False
     else:
