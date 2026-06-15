@@ -333,11 +333,13 @@ class TestSplit1Split2:
         assert filecmp.cmp(
             os.path.join(split_dir, "obslist.txt"),
             os.path.join(ref_dir, "obslist.txt"),
+            shallow=False,
         )
         # Compare main.yaml
         assert filecmp.cmp(
             os.path.join(split_dir, "main.yaml"),
             os.path.join(ref_dir, "main.yaml"),
+            shallow=False,
         )
         # Compare each observer file
         with open(os.path.join(ref_dir, "obslist.txt")) as f:
@@ -345,6 +347,7 @@ class TestSplit1Split2:
                 assert filecmp.cmp(
                     os.path.join(split_dir, f"{obs_name}.yaml"),
                     os.path.join(ref_dir, f"{obs_name}.yaml"),
+                    shallow=False,
                 )
 
     def test_split2_matches_reference(self, tmp_path):
@@ -358,13 +361,15 @@ class TestSplit1Split2:
         assert filecmp.cmp(
             os.path.join(split_dir, "obslist.txt"),
             os.path.join(ref_dir, "obslist.txt"),
+            shallow=False,
         )
         # Compare main.yaml
         assert filecmp.cmp(
             os.path.join(split_dir, "main.yaml"),
             os.path.join(ref_dir, "main.yaml"),
+            shallow=False,
         )
-        # Compare each observer directory
+        # Compare each observer directory (including filter YAML files)
         with open(os.path.join(ref_dir, "obslist.txt")) as f:
             for obs_name in f.read().splitlines():
                 ref_obs_dir = os.path.join(ref_dir, obs_name)
@@ -373,11 +378,20 @@ class TestSplit1Split2:
                 assert filecmp.cmp(
                     os.path.join(split_obs_dir, "obsmain.yaml"),
                     os.path.join(ref_obs_dir, "obsmain.yaml"),
+                    shallow=False,
                 )
                 assert filecmp.cmp(
                     os.path.join(split_obs_dir, "filterlist.txt"),
                     os.path.join(ref_obs_dir, "filterlist.txt"),
+                    shallow=False,
                 )
+                with open(os.path.join(ref_obs_dir, "filterlist.txt")) as fl:
+                    for flt in fl.read().splitlines():
+                        assert filecmp.cmp(
+                            os.path.join(split_obs_dir, flt),
+                            os.path.join(ref_obs_dir, flt),
+                            shallow=False,
+                        )
 
     def test_split1_pack_roundtrip(self, tmp_path):
         """split1 then pack should reproduce the original."""
