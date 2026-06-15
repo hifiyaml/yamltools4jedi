@@ -540,7 +540,7 @@ class TestKeepObs:
         assert "t183" in remaining_snames
 
     def test_keepobs_matches_reference(self, demo_data):
-        """keepobs t181 should match ref/keepobs.yaml."""
+        """keepobs t183 should match ref/keepobs.yaml."""
         data = copy.copy(demo_data)
         dcObs = yj.get_all_obs(data, shallow=True)
         pos1, _ = hy.get_start_pos(data, "observations/observers")
