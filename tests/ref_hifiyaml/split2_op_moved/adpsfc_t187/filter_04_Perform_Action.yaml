@@ -1,0 +1,34 @@
+         # Error inflation based on pressure check (setupt.f90)
+         - filter: Perform Action
+           filter variables:
+           - name: airTemperature
+           where:
+           - variable: ObsType/airTemperature
+             is_in: 187
+           action:
+             name: inflate error
+             inflation variable:
+               name: ObsFunction/ObsErrorFactorPressureCheck
+               options:
+                 variable: airTemperature
+                 inflation factor: 8.0
+                 # The new feature "surface observation error ramp"
+                 # needs to be added to UFO to align with the ramp
+                 # options for temperature and humidity in GSI.
+                 surface observation error ramp: true
+
+#         # Error inflation based on errormod (qcmod.f90)
+#         - filter: Perform Action
+#           filter variables:
+#           - name: airTemperature
+#           where:
+#           - variable: ObsType/airTemperature
+#             is_in: 187
+#           action:
+#             name: inflate error
+#             inflation variable:
+#               name: ObsFunction/ObsErrorFactorConventional
+#               options:
+#                 inflate variables: [airTemperature]
+#                 pressure: MetaData/pressure
+

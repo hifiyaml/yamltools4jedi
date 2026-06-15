@@ -1,0 +1,24 @@
+         # Time window filter
+         - filter: Domain Check
+           apply at iterations: 0,1
+           where:
+             - variable:
+                 name: MetaData/timeOffset # units: s
+               minvalue: -900
+               maxvalue:  900
+           action:
+             name: reduce obs space
+
+         # Duplicate Check
+#         - filter: Temporal Thinning
+#           apply at iterations: 0,1
+#           filter variables:
+#           - name: airTemperature
+#           min_spacing: PT90M
+#           tolerance: PT0H
+#           seed_time: "@analysisDate@"
+#           category_variable:
+#             name: MetaData/longitude_latitude_pressure
+#           action:
+#             name: reduce obs space
+
