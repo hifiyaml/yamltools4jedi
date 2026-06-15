@@ -1,0 +1,8 @@
+adpsfc_t181                        : 14 filters
+adpsfc_t183                        : 15 filters
+adpsfc_t187                        : 15 filters
+
+
+3 observers:
+t181, t183, t187
+

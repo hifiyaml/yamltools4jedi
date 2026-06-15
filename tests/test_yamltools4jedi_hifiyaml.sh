@@ -65,6 +65,23 @@ export YJ_USE_CONV_SAT_INFO=true
 export YJ_YTYPE="jedivar"
 ./yjx demo.yaml > tmp/conv_sat_info.yaml
 
+# --------------------------------------------------------------------
+# split1, split2, listobs, removeobs, keepobs
+# --------------------------------------------------------------------
+./yj split1 demo.yaml
+mv split1.demo.yaml tmp/split1_op_moved
+./yj split1 demo.yaml tmp/split1_op_directly
+
+./yj split2 demo.yaml
+mv split2.demo.yaml tmp/split2_op_moved
+./yj split2 demo.yaml tmp/split2_op_directly
+
+./yj listobs demo.yaml > tmp/listobs.txt
+
+./yj removeobs demo.yaml "t183" > tmp/removeobs.yaml
+
+./yj keepobs demo.yaml "t183" > tmp/keepobs.yaml
+
 diff -rf tmp ref_hifiyaml 1>/dev/null 2>/dev/null
 if (( $? == 0 )); then
   echo "test passed, identical results."
