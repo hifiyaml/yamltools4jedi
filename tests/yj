@@ -40,7 +40,7 @@ if operator == "split1":
     dirname = f'split1.{basename}'   # default value for the split operators
 elif operator == "split2":
     dirname = f'split2.{basename}'   # default value for the split operators
-elif operator == "split"
+elif operator == "split":
     dirname = f'split{split_level}.{basename}'   # default value for the split operators
 
 if nargs > 2:
