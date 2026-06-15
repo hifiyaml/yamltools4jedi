@@ -414,7 +414,6 @@ class TestListObs:
     def test_listobs_finds_all_observers(self, demo_data):
         """listobs should find all 3 observers with correct short names."""
         dcObs = yj.get_all_obs(demo_data, shallow=False)
-        names = list(dcObs.keys())
         snames = [obs["sname"] for obs in dcObs.values()]
         assert len(dcObs) == 3
         assert "t181" in snames
