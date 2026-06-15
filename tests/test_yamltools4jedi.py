@@ -315,3 +315,259 @@ class TestGetAllFilters:
         for f in filters:
             assert f["category"] != ""
             assert len(f["block"]) > 0
+
+
+# ============================================================
+# Tests: split1 and split2 (explicit level operators)
+# ============================================================
+
+class TestSplit1Split2:
+    def test_split1_matches_reference(self, tmp_path):
+        """split1 should produce output identical to ref split.default_1.1."""
+        demo_path = os.path.join(here, "demo.yaml")
+        split_dir = str(tmp_path / "split1.demo.yaml")
+        yj.split(demo_path, level=1, dirname=split_dir, do_dedent=False)
+
+        ref_dir = os.path.join(here, "ref_hifiyaml", "split.default_1.1")
+        # Compare obslist.txt
+        assert filecmp.cmp(
+            os.path.join(split_dir, "obslist.txt"),
+            os.path.join(ref_dir, "obslist.txt"),
+            shallow=False,
+        )
+        # Compare main.yaml
+        assert filecmp.cmp(
+            os.path.join(split_dir, "main.yaml"),
+            os.path.join(ref_dir, "main.yaml"),
+            shallow=False,
+        )
+        # Compare each observer file
+        with open(os.path.join(ref_dir, "obslist.txt")) as f:
+            for obs_name in f.read().splitlines():
+                assert filecmp.cmp(
+                    os.path.join(split_dir, f"{obs_name}.yaml"),
+                    os.path.join(ref_dir, f"{obs_name}.yaml"),
+                    shallow=False,
+                )
+
+    def test_split2_matches_reference(self, tmp_path):
+        """split2 should produce output identical to ref split.default_2."""
+        demo_path = os.path.join(here, "demo.yaml")
+        split_dir = str(tmp_path / "split2.demo.yaml")
+        yj.split(demo_path, level=2, dirname=split_dir, do_dedent=False)
+
+        ref_dir = os.path.join(here, "ref_hifiyaml", "split.default_2")
+        # Compare obslist.txt
+        assert filecmp.cmp(
+            os.path.join(split_dir, "obslist.txt"),
+            os.path.join(ref_dir, "obslist.txt"),
+            shallow=False,
+        )
+        # Compare main.yaml
+        assert filecmp.cmp(
+            os.path.join(split_dir, "main.yaml"),
+            os.path.join(ref_dir, "main.yaml"),
+            shallow=False,
+        )
+        # Compare each observer directory (including filter YAML files)
+        with open(os.path.join(ref_dir, "obslist.txt")) as f:
+            for obs_name in f.read().splitlines():
+                ref_obs_dir = os.path.join(ref_dir, obs_name)
+                split_obs_dir = os.path.join(split_dir, obs_name)
+                assert os.path.isdir(split_obs_dir), f"{obs_name}/ directory should exist"
+                assert filecmp.cmp(
+                    os.path.join(split_obs_dir, "obsmain.yaml"),
+                    os.path.join(ref_obs_dir, "obsmain.yaml"),
+                    shallow=False,
+                )
+                assert filecmp.cmp(
+                    os.path.join(split_obs_dir, "filterlist.txt"),
+                    os.path.join(ref_obs_dir, "filterlist.txt"),
+                    shallow=False,
+                )
+                with open(os.path.join(ref_obs_dir, "filterlist.txt")) as fl:
+                    for flt in fl.read().splitlines():
+                        assert filecmp.cmp(
+                            os.path.join(split_obs_dir, flt),
+                            os.path.join(ref_obs_dir, flt),
+                            shallow=False,
+                        )
+
+    def test_split1_pack_roundtrip(self, tmp_path):
+        """split1 then pack should reproduce the original."""
+        demo_path = os.path.join(here, "demo.yaml")
+        split_dir = str(tmp_path / "split1.demo.yaml")
+        yj.split(demo_path, level=1, dirname=split_dir, do_dedent=False)
+
+        pack_path = str(tmp_path / "packed.yaml")
+        yj.pack(split_dir, pack_path, plain_pack=True)
+
+        original = hy.load(demo_path)
+        packed = hy.load(pack_path)
+        assert original == packed
+
+    def test_split2_pack_roundtrip(self, tmp_path):
+        """split2 then pack should reproduce the original."""
+        demo_path = os.path.join(here, "demo.yaml")
+        split_dir = str(tmp_path / "split2.demo.yaml")
+        yj.split(demo_path, level=2, dirname=split_dir, do_dedent=False)
+
+        pack_path = str(tmp_path / "packed.yaml")
+        yj.pack(split_dir, pack_path, plain_pack=True)
+
+        original = hy.load(demo_path)
+        packed = hy.load(pack_path)
+        assert original == packed
+
+
+# ============================================================
+# Tests: listobs
+# ============================================================
+
+class TestListObs:
+    def test_listobs_finds_all_observers(self, demo_data):
+        """listobs should find all 3 observers with correct short names."""
+        dcObs = yj.get_all_obs(demo_data, shallow=False)
+        snames = [obs["sname"] for obs in dcObs.values()]
+        assert len(dcObs) == 3
+        assert "t181" in snames
+        assert "t183" in snames
+        assert "t187" in snames
+
+    def test_listobs_reports_filter_counts(self, demo_data):
+        """listobs should report non-zero filter counts for each observer."""
+        dcObs = yj.get_all_obs(demo_data, shallow=False)
+        for name, observer in dcObs.items():
+            filter_knt = (len(observer['pre filters']) + len(observer['filters']) +
+                          len(observer['prior filters']) + len(observer['post filters']))
+            assert filter_knt > 0
+
+
+# ============================================================
+# Tests: removeobs
+# ============================================================
+
+class TestRemoveObs:
+    def test_removeobs_single(self, demo_data):
+        """removeobs with one observer should reduce count by 1."""
+        data = copy.copy(demo_data)
+        dcObs = yj.get_all_obs(data, shallow=True)
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]
+        obs_list = ["t181"]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            keep = sname not in obs_list
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        output.extend(data[pos2:])
+        # Verify one observer was removed
+        remaining = yj.get_all_obs(output, shallow=True)
+        assert len(remaining) == 2
+        remaining_snames = [obs["sname"] for obs in remaining.values()]
+        assert "t181" not in remaining_snames
+        assert "t183" in remaining_snames
+        assert "t187" in remaining_snames
+
+    def test_removeobs_multiple(self, demo_data):
+        """removeobs with two observers should reduce count by 2."""
+        data = copy.copy(demo_data)
+        dcObs = yj.get_all_obs(data, shallow=True)
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]
+        obs_list = ["t181", "t183"]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            keep = sname not in obs_list
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        output.extend(data[pos2:])
+        remaining = yj.get_all_obs(output, shallow=True)
+        assert len(remaining) == 1
+        remaining_snames = [obs["sname"] for obs in remaining.values()]
+        assert "t187" in remaining_snames
+
+    def test_removeobs_matches_reference(self, demo_data):
+        """removeobs t183 should match ref/removeobs.yaml."""
+        data = copy.copy(demo_data)
+        dcObs = yj.get_all_obs(data, shallow=True)
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]
+        obs_list = ["t183"]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            keep = sname not in obs_list
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        output.extend(data[pos2:])
+        ref_path = os.path.join(here, "ref_hifiyaml", "removeobs.yaml")
+        with open(ref_path, 'r') as f:
+            ref_lines = [line.rstrip('\n') for line in f.readlines()]
+        assert output == ref_lines
+
+
+# ============================================================
+# Tests: keepobs
+# ============================================================
+
+class TestKeepObs:
+    def test_keepobs_single(self, demo_data):
+        """keepobs with one observer should keep only that one."""
+        data = copy.copy(demo_data)
+        dcObs = yj.get_all_obs(data, shallow=True)
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]
+        obs_list = ["t181"]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            keep = sname in obs_list
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        output.extend(data[pos2:])
+        remaining = yj.get_all_obs(output, shallow=True)
+        assert len(remaining) == 1
+        remaining_snames = [obs["sname"] for obs in remaining.values()]
+        assert "t181" in remaining_snames
+
+    def test_keepobs_multiple(self, demo_data):
+        """keepobs with two observers should keep only those two."""
+        data = copy.copy(demo_data)
+        dcObs = yj.get_all_obs(data, shallow=True)
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]
+        obs_list = ["t181", "t183"]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            keep = sname in obs_list
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        output.extend(data[pos2:])
+        remaining = yj.get_all_obs(output, shallow=True)
+        assert len(remaining) == 2
+        remaining_snames = [obs["sname"] for obs in remaining.values()]
+        assert "t181" in remaining_snames
+        assert "t183" in remaining_snames
+
+    def test_keepobs_matches_reference(self, demo_data):
+        """keepobs t183 should match ref/keepobs.yaml."""
+        data = copy.copy(demo_data)
+        dcObs = yj.get_all_obs(data, shallow=True)
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        output = data[0:pos1 + 1]
+        obs_list = ["t183"]
+        for _, observer in dcObs.items():
+            sname = observer["sname"]
+            keep = sname in obs_list
+            if keep:
+                output.extend(data[observer["pos1"]:observer["pos2"]])
+        output.extend(data[pos2:])
+        ref_path = os.path.join(here, "ref_hifiyaml", "keepobs.yaml")
+        with open(ref_path, 'r') as f:
+            ref_lines = [line.rstrip('\n') for line in f.readlines()]
+        assert output == ref_lines
