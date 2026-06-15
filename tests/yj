@@ -36,7 +36,13 @@ newblock_file, querystr, fpack, yobsout = "", "", "", ""
 operator = args[1]
 yfile = args[2]
 basename = os.path.basename(yfile)
-dirname = f'split{split_level}.{basename}'   # default value for the split operators
+if operator == "split1":
+    dirname = f'split1.{basename}'   # default value for the split operators
+elif operator == "split2":
+    dirname = f'split2.{basename}'   # default value for the split operators
+elif operator == "split"
+    dirname = f'split{split_level}.{basename}'   # default value for the split operators
+
 if nargs > 2:
     querystr = args[3]
     dirname = args[3] # split operators
