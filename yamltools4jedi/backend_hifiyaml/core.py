@@ -218,11 +218,15 @@ def get_all_filters(data, pos1, pos2):
         # get the whole block of an obs filter
         dcFilter = {
             "category": category,
+            "id": "",
             "pos1": cur,
             "pos2": next_one,
             "block": [],
         }
         for i in range(cur, next_one):
+            _, _, line = hy.strip_indentations(data[i])
+            if not line.startswith('#') and line.startswith("filter id:"):
+                dcFilter["id"] = data[i].split(":")[1].strip()
             dcFilter["block"].append(data[i])
 
         filters.append(dcFilter)
