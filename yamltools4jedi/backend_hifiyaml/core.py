@@ -224,7 +224,8 @@ def get_all_filters(data, pos1, pos2):
             "block": [],
         }
         for i in range(cur, next_one):
-            if "filter id" in data[i]:
+            _, _, line = hy.strip_indentations(data[i])
+            if not line.startswith('#') and line.startswith("filter id:"):
                 dcFilter["id"] = data[i].split(":")[1].strip()
             dcFilter["block"].append(data[i])
 

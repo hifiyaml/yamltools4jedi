@@ -110,7 +110,7 @@ if "#" in querystr:
                     filterstr = get_filterstr("post filters")
                 if not filterstr:
                     sys.stderr.write(f'filterID "{myfilter}" not found!\n')
-                    exit()
+                    sys.exit(1)
             # ~~~~~~~~~~
             break
     # ~~~~~~~~
@@ -118,7 +118,7 @@ if "#" in querystr:
         querystr = f"observations/observers/{obsIndex}{filterstr}/" +  part1.strip().strip("/")
     else:
         sys.stderr.write(f'observer "{myobs}" not found!\n')
-        exit()
+        sys.exit(1)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 #  dump, drop, modify, split, split1, split2, pack
