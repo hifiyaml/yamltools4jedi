@@ -5314,6 +5314,7 @@ observations:
          # ------------------
          # Reject all obs with QualityMarker > 3
          - filter: RejectList
+           filter id: qcMarkerReject
            apply at iterations: 0,1
            filter variables:
            - name: airTemperature
@@ -5327,6 +5328,7 @@ observations:
 
          # Time window filter
          - filter: Domain Check
+           filter id: timeWindowCheck
            apply at iterations: 0,1
            where:
              - variable:
@@ -5351,6 +5353,7 @@ observations:
 
          # Online regional domain check
          - filter: Bounds Check
+           filter id: reginalDomainCheck
            filter variables:
            - name: airTemperature
            test variables:
@@ -5360,6 +5363,7 @@ observations:
 
          # Initial error assignment
          - filter: Perform Action
+           filter id: obsErrorInit
            filter variables:
            - name: airTemperature
            where:
@@ -5377,6 +5381,7 @@ observations:
 
          # Error inflation based on pressure check (setupt.f90)
          - filter: Perform Action
+           filter id: obsErrorFactorPressureCheck
            filter variables:
            - name: airTemperature
            where:
@@ -5407,6 +5412,7 @@ observations:
 
          # Error inflation when QualityMarker == 3 (read_prepbufr.f90)
          - filter: Perform Action
+           filter id: obsErrorFactorQc3
            filter variables:
            - name: airTemperature
            action:
@@ -5418,6 +5424,7 @@ observations:
 
          # Error inflation when observation pressure < 100 hPa (read_prepbufr.f90)
          - filter: Perform Action
+           filter id: obsErrorFactorHighAltitude
            filter variables:
            - name: airTemperature
            action:
@@ -5430,6 +5437,7 @@ observations:
          # Bounds Check (ObsError)
          - filter: Bounds Check
            filter variables:
+           filter id: obsErrorBoundsCheck
            - name: airTemperature
            test variables:
            - name:  ObsErrorData/airTemperature
@@ -5439,6 +5447,7 @@ observations:
 
          # Bounds Check (ObsValue)
          - filter: Bounds Check
+           filter id: obsValueBoundsCheck
            filter variables:
            - name: airTemperature
            minvalue: 100
@@ -5448,6 +5457,7 @@ observations:
 
          # Create temporary ObsErrorData
          - filter: Variable Assignment
+           filter id: createTempObsErrorData
            apply at iterations: 0,1
            assignments:
            - name: TempObsErrorData/airTemperature
@@ -5461,6 +5471,7 @@ observations:
 
          # Set ObsError set "error parameter" if < "max value"
          - filter: Perform Action
+           filter id: minObsError
            apply at iterations: 0,1
            filter variables:
            - name: airTemperature
@@ -5478,6 +5489,7 @@ observations:
 
          # Set ObsError set "error parameter" if > "min value"
          - filter: Perform Action
+           filter id: maxObsError
            apply at iterations: 0,1
            filter variables:
            - name: airTemperature
@@ -5495,6 +5507,7 @@ observations:
 
          # Gross Error Check
          - filter: Background Check
+           filter id: grossErrorCheck
            apply at iterations: 0,1
            filter variables:
            - name: airTemperature
@@ -5509,6 +5522,7 @@ observations:
 
          # Gross Error Check: cgross*0.7 if QualityMarker=3
          - filter: Background Check
+           filter id: grossErrorCheckQc3
            apply at iterations: 0,1
            filter variables:
            - name: airTemperature
@@ -5523,6 +5537,7 @@ observations:
 
          # Re-assign err ObsErrorData <--- TempObsErrorData after gross error check.
          - filter: Perform Action
+           filter id: obsErrorCopyBack
            apply at iterations: 0,1
            filter variables:
            - name: airTemperature
