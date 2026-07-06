@@ -5192,7 +5192,7 @@ observations:
 
          # Online regional domain check
          - filter: Bounds Check
-           filter id: reginalDomainCheck
+           filter id: regionalDomainCheck
            filter variables:
            - name: airTemperature
            test variables:
