@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import os
 import re
 import sys
@@ -66,6 +66,59 @@ elif operator == "pack":  # pack operator
 # ------------------------------------------------------------------------------------------------------------------------------------
 if operator != "pack":
     data = hy.load(yfile)
+
+# ------------------------------------------------------------------------------------------------------------------------------------
+#  if specified, convert JEDI specific querystr (#obs:filter#/path/to/a/block) to be generic
+# ------------------------------------------------------------------------------------------------------------------------------------
+if "#" in querystr:
+    querystr = querystr.strip("#").strip()
+    parts = querystr.split("#")
+    part0 = parts[0]
+    part1 = ""
+    if len(parts) > 1:
+        part1 = parts[1]
+    myfilter = ""
+    if ":" in part0:
+        myobs, myfilter = part0.strip().split(":")
+    else:
+        myobs = part0.strip()
+    if myfilter:  # need to read all obs/filters
+        dcObs = yj.get_all_obs(data, shallow=False)
+    else:
+        dcObs = yj.get_all_obs(data, shallow=True)
+    # ~~~~
+    obsIndex = -1
+    filterstr = ""
+    for knt, (name, observer) in enumerate(dcObs.items()):
+        sname = observer["sname"]
+        if sname in myobs:
+            obsIndex = knt
+            if myfilter:  # find the specified filter id
+                def get_filterstr(key):
+                    if key in observer:
+                        for knt, dcFilter in enumerate(observer[key]):
+                            if dcFilter["id"] == myfilter:
+                                filterstr = f"/obs {key}/{knt}"
+                                return filterstr
+                if not filterstr:
+                    filterstr = get_filterstr("filters")
+                if not filterstr:
+                    filterstr = get_filterstr("prior filters")
+                if not filterstr:
+                    filterstr = get_filterstr("pre filters")
+                if not filterstr:
+                    filterstr = get_filterstr("post filters")
+                if not filterstr:
+                    sys.stderr.write(f'filterID "{myfilter}" not found!')
+                    exit()
+            # ~~~~~~~~~~
+            break
+    # ~~~~~~~~
+    if obsIndex >= 0:
+        querystr = f"observations/observers/{obsIndex}{filterstr}/" +  part1.strip().strip("/")
+    else:
+        sys.stderr.write(f'observer "{myobs}" not found!')
+        exit()
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 #  dump, drop, modify, split, split1, split2, pack
