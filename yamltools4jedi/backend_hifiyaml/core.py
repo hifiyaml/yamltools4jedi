@@ -94,8 +94,43 @@ def load_satinfo():
                         dcSIS['iaerosol'].append(fields[10])          # iaerosol
                         dcSatInfo[sis] = dcSIS
                     else:
-                        sys.stderr.write(f"read_satinfo warning: expected 11 fields\n{line}\n")
+                        sys.stderr.write(f"load_satinfo warning: expected 11 fields\n{line}\n")
     return dcSatInfo
+
+
+# load cloudy_radiance_info
+def load_cloudy_radiance_info():
+    dcCldRadInfo = {}
+    if os.path.exists('cloudy_radiance_info'):
+        with open('cloudy_radiance_info', 'r') as crfile:
+            insideBlock = False
+            for line in crfile:
+                line = line.strip()
+                if line.startswith("!"):  # skip comment lines
+                    continue
+                elif "::" in line:  # start or end of a block
+                    if insideBlock:
+                        insideBlock = False  # end of the current block
+                    else:
+                        insideBlock = True  # start of a new block
+                        if line.startswith("obs"):
+                            obstype = line[:-2].split("_")[1]
+                        else:
+                            obstype = None
+                elif insideBlock:
+                    if obstype is not None:
+                        fields = line.split()
+                        if len(fields) == 3 or len(fields) == 4:
+                            chan = fields[0]
+                            cclr = fields[1]  # CCLR, cloud amount for cleary sky
+                            ccld = fields[2]  # CCLD, cloud amount for cloudy sky
+                            cldval1 = fields[3] if len(fields) == 4 else None  # optional cldval1 for gmi and amsr2
+                            if obstype not in dcCldRadInfo:
+                                dcCldRadInfo[obstype] = {}
+                            dcCldRadInfo[obstype][chan] = {"cldamt_clear": cclr, "cldamt_cloudy": ccld, "cldval1": cldval1}
+                        else:
+                            sys.stderr.write(f"load_cloudy_radiance_info warning: expected 3 fields\n{line}\n")
+    return dcCldRadInfo
 
 
 # generate one satellite anchor block (yaml-ready anchor section for a given SIS)
@@ -151,6 +186,36 @@ def generate_sat_anchors(dcSatInfo, mysis, spaces=""):
     for anchor_cat in ["channels", "use_flag", "use_flag_clddet", "error0", "error1", "obserr_bound_max"]:
         block = generate_sat_anchor(dcSatInfo, mysis, anchor_cat, spaces)
         text += "\n".join(block) + "\n"
+    return text
+
+
+# generate cldamt anchor blocks (yaml-ready anchor sections for a given SIS)
+def generate_cldamt_anchors(dcSatInfo, dcCldRadInfo, mysis, obstype, spaces=""):
+    pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
+    if len(dcSatInfo[mysis]["channels"]) < 100:
+        elements_per_line = 10
+    else:
+        elements_per_line = 20
+    # cldamt_clear and cloudy
+    list_clear, list_cloudy = [], []
+    for chan in dcSatInfo[mysis]["channels"]:
+        if chan in dcCldRadInfo[obstype]:
+            list_clear.append(dcCldRadInfo[obstype][chan]["cldamt_clear"])
+            list_cloudy.append(dcCldRadInfo[obstype][chan]["cldamt_cloudy"])
+        else:
+            list_clear.append("0.000")
+            list_cloudy.append("0.000")
+    block_clear = list_to_delimited_string(list_clear, pre_spaces, elements_per_line=elements_per_line)
+    block_cloudy = list_to_delimited_string(list_cloudy, pre_spaces, elements_per_line=elements_per_line)
+    # clear sky
+    block_clear.insert(0, f"{spaces}_anchor_cldamt_clear: &{mysis}_cldamt_clear")
+    block_clear[0] = block_clear[0] + " ["
+    block_clear[len(block_clear) - 1] = block_clear[len(block_clear) - 1] + "]"
+    # cloudy sky
+    block_cloudy.insert(0, f"{spaces}_anchor_cldamt_cloudy: &{mysis}_cldamt_cloudy")
+    block_cloudy[0] = block_cloudy[0] + " ["
+    block_cloudy[len(block_cloudy) - 1] = block_cloudy[len(block_cloudy) - 1] + "]"
+    text = "\n".join(block_clear + block_cloudy) + "\n"
     return text
 
 

@@ -303,7 +303,20 @@ elif operator in ("sat_anchors"):  # generate sat anchors
         exit()
     dcSatInfo = yj.load_satinfo()
     text = yj.generate_sat_anchors(dcSatInfo, mysis, spaces)
+    # get the cloud amount settings for cloudy radiance DA
+    dcCldRadInfo = yj.load_cloudy_radiance_info()
+    key = next((key for key in dcCldRadInfo if key in mysis), None)
+    if key is not None:
+        text += yj.generate_cldamt_anchors(dcSatInfo, dcCldRadInfo, mysis, key, spaces)
     print(text)
+
+    # for obstype in dcCldRadInfo:
+    #     print(f'Observation Type: {obstype}')
+    #     for channel, values in dcCldRadInfo[obstype].items():
+    #         cclr = values["cldamt_clear"]
+    #         ccld = values["cldamt_cloudy"]
+    #         cldval1 = values["cldval1"]
+    #         print(f'Channel: {channel}, CCLR: {cclr}, CCLD: {ccld}, CLDVAL1: {cldval1}')
 
 else:
     hy.printd(f"unknown operator: {operator}")
