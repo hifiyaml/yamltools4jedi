@@ -78,20 +78,20 @@ def load_satinfo():
                         if sis in dcSatInfo:
                             dcSIS = dcSatInfo[sis]
                         else:
-                            dcSIS = {'channels': [], 'use_flag': [], 'error': [], 'error_cld': [], 'obserr_bound_max': [],
+                            dcSIS = {'channels': [], 'use_flag': [], 'error0': [], 'error1': [], 'obserr_bound_max': [],
                                      'var_b': [], 'var_pg': [], 'use_flag_clddet': [], 'icloud': [], 'iaerosol': [],
                                      }
                         #
-                        dcSIS['channels'].append(fields[1])
-                        dcSIS['use_flag'].append(fields[2])
-                        dcSIS['error'].append(fields[3])
-                        dcSIS['error_cld'].append(fields[4])
-                        dcSIS['obserr_bound_max'].append(fields[5])
-                        dcSIS['var_b'].append(fields[6])
-                        dcSIS['var_pg'].append(fields[7])
-                        dcSIS['use_flag_clddet'].append(fields[8])
-                        dcSIS['icloud'].append(fields[9])
-                        dcSIS['iaerosol'].append(fields[10])
+                        dcSIS['channels'].append(fields[1])           # chan
+                        dcSIS['use_flag'].append(fields[2])           # iuse
+                        dcSIS['error0'].append(fields[3])             # error
+                        dcSIS['error1'].append(fields[4])             # error_cld
+                        dcSIS['obserr_bound_max'].append(fields[5])   # ermax
+                        dcSIS['var_b'].append(fields[6])              # var_b
+                        dcSIS['var_pg'].append(fields[7])             # var_pg
+                        dcSIS['use_flag_clddet'].append(fields[8])    # icld_det
+                        dcSIS['icloud'].append(fields[9])             # iclould
+                        dcSIS['iaerosol'].append(fields[10])          # iaerosol
                         dcSatInfo[sis] = dcSIS
                     else:
                         sys.stderr.write(f"read_satinfo warning: expected 11 fields\n{line}\n")
@@ -102,7 +102,7 @@ def load_satinfo():
 # Expected anchor line format: _anchor_<cat>: &<sis>_<cat>
 #   e.g., _anchor_channels: &amsua_n15_channels
 def update_sat_anchor(data, dcSatInfo, anchor):
-    anchor_cat = anchor[8:]  # anchor category: channels, use_flag, use_flag_clddet, error, obserr_bound_max
+    anchor_cat = anchor[8:]  # anchor category: channels, use_flag, use_flag_clddet, error0, error1, obserr_bound_max
     pos1, errmsg = hy.get_start_pos(data, anchor, stop_on_error=False)
     if errmsg is not None:  # if "_anchor" does not exisit, just return
         return
@@ -135,7 +135,8 @@ def update_sat_anchors(data, dcInfo):
     update_sat_anchor(data, dcInfo, "_anchor_channels")
     update_sat_anchor(data, dcInfo, "_anchor_use_flag")
     update_sat_anchor(data, dcInfo, "_anchor_use_flag_clddet")
-    update_sat_anchor(data, dcInfo, "_anchor_error")
+    update_sat_anchor(data, dcInfo, "_anchor_error0")
+    update_sat_anchor(data, dcInfo, "_anchor_error1")
     update_sat_anchor(data, dcInfo, "_anchor_obserr_bound_max")
 
 
