@@ -1,0 +1,16 @@
+         # Error inflation when observation pressure < 100 hPa (read_prepbufr.f90)
+         - filter: Perform Action
+           apply at iterations: 0,1
+           identifier:
+             name: ObsErrorFactorHighAltitude
+             logging: true
+             diagnostic flag new: false
+           filter variables:
+           - name: airTemperature
+           action:
+             name: inflate error
+             inflation factor: 1.2
+           where:
+           - variable: MetaData/pressure
+             maxvalue: 10000.0
+

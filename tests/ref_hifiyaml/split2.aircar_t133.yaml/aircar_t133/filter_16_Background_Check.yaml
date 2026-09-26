@@ -1,0 +1,18 @@
+         # Gross Error Check
+         - filter: Background Check
+           apply at iterations: 0,1
+           identifier:
+             name: GrossErrorCheck
+             logging: true
+             diagnostic flag new: false
+           filter variables:
+           - name: airTemperature
+           threshold: 7.0
+           action:
+             name: reject
+           where:
+           - variable: ObsType/airTemperature
+           - variable: QualityMarker/airTemperature
+             is_not_in: 3
+           defer to post: true
+

@@ -1,0 +1,11 @@
+         # Remove all invalid obs from this observer
+         - filter: Perform Action
+           identifier:
+             name: ObsInvalidCheck
+             logging: true
+           where:
+           - variable: ObsValue/airTemperature
+             value: is_not_valid
+           action:
+             name: reduce obs space
+

@@ -1,0 +1,39 @@
+         # Error inflation based on pressure check (setupt.f90)
+         - filter: Perform Action
+           apply at iterations: 0,1
+           identifier:
+             name: ObsErrorFactorPressureCheck
+             logging: true
+             diagnostic flag new: false
+           filter variables:
+           - name: airTemperature
+           where:
+           - variable: ObsType/airTemperature
+             is_in: 133
+           action:
+             name: inflate error
+             inflation variable:
+               name: ObsFunction/ObsErrorFactorPressureCheck
+               options:
+                 variable: airTemperature
+                 inflation factor: 8.0
+
+#         # Error inflation based on errormod (qcmod.f90)
+#         - filter: Perform Action
+#           identifier:
+#             name: ObsErrorFactorConventional
+#             logging: true
+#             diagnostic flag new: false
+#           filter variables:
+#           - name: airTemperature
+#           where:
+#           - variable: ObsType/airTemperature
+#             is_in: 133
+#           action:
+#             name: inflate error
+#             inflation variable:
+#               name: ObsFunction/ObsErrorFactorConventional
+#               options:
+#                 inflate variables: [airTemperature]
+#                 pressure: MetaData/pressure
+

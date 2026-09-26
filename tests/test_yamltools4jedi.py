@@ -135,6 +135,34 @@ observers:
 # ============================================================
 
 class TestSplitPack:
+    @pytest.mark.parametrize("level", [1, 2])
+    @pytest.mark.parametrize("leading_blanks", [0, 2])
+    def test_standalone_observer_roundtrip(self, tmp_path, level, leading_blanks):
+        source = tmp_path / "aircar_t133.yaml"
+        source.write_text(
+            "\n" * leading_blanks + "     - obs space:\n"
+            "         name: aircar_t133\n"
+            "       obs filters:\n"
+            "         - filter: RejectList\n"
+            "           identifier:\n"
+            "             name: OutlierCheck\n"
+            "         - filter: Domain Check\n"
+            "           identifier:\n"
+            "             name: RangeCheck\n"
+        )
+        split_dir = str(tmp_path / "split")
+        yj.split(source, level=level, dirname=split_dir)
+
+        assert open(os.path.join(split_dir, "obslist.txt")).read() == "aircar_t133\n"
+        assert open(os.path.join(split_dir, "main.yaml")).read() == "\n" * leading_blanks
+        if level == 2:
+            obs_dir = os.path.join(split_dir, "aircar_t133")
+            assert len(open(os.path.join(obs_dir, "filterlist.txt")).read().splitlines()) == 2
+
+        packed = str(tmp_path / "packed.yaml")
+        yj.pack(split_dir, packed)
+        assert hy.load(source) == hy.load(packed)
+
     def test_split_level1_pack_roundtrip(self, tmp_path):
         """Split level 1 (no dedent) then pack should reproduce the original."""
         demo_path = os.path.join(here, "demo.yaml")

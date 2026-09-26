@@ -1,0 +1,11 @@
+         # Remove obs of other obsTypes
+         - filter: Perform Action
+           identifier:
+             name: ObsTypeCheck
+             logging: true
+           where:
+           - variable: ObsType/airTemperature
+             is_not_in: 133
+           action:
+             name: reduce obs space
+

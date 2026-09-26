@@ -53,6 +53,16 @@ else
   echo "FATAL: pack2.yaml is different from demo.yaml"
 fi
 
+./yj split2 aircar_t133.yaml
+mv split2.aircar_t133.yaml tmp
+./yj pack tmp/split2.aircar_t133.yaml tmp/aircar_t133.yaml
+diff aircar_t133.yaml tmp/aircar_t133.yaml
+if (( $? == 0 )); then
+  echo "GOOD: split and re-pack generate the identical aircar_t133.yaml"
+else
+  echo "FATAL: aircar_t133.yaml split and pack, not roundtrip identical"
+fi
+
 export YJ_USE_CONV_SAT_INFO=false
 export YJ_YTYPE="getkf"
 export YJ_GETKF_TYPE="solver"

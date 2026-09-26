@@ -481,9 +481,12 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
                 write_block(outfile, obs["block"], do_dedent, nspace)
 
     # write main.yaml
-    pos1, _ = hy.get_start_pos(data, "observations/observers")
-    pos2 = hy.next_pos(data, pos1)
-    data[pos1 + 1:pos2] = []  # keep the "observers:" line
+    if next((line for line in data if line.strip()), "").lstrip().startswith("- obs space:"):
+        data = data[:next(index for index, line in enumerate(data) if line.strip())]
+    else:
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        pos2 = hy.next_pos(data, pos1)
+        data[pos1 + 1:pos2] = []  # keep the "observers:" line
     with open(f'{toppath}/main.yaml', 'w') as outfile:
         for i in range(len(data)):
             outfile.write(data[i] + '\n')
@@ -539,8 +542,11 @@ plain_pack: ignore all indentation settings, pack as-is;
         return
 
     data = hy.load(os.path.join(dirname, "main.yaml"))
-    pos1, _ = hy.get_start_pos(data, "observations/observers")
-    nspace = hy.strip_indentations(data[pos1])[0]
+    if any(line.strip() for line in data):
+        pos1, _ = hy.get_start_pos(data, "observations/observers")
+        nspace = hy.strip_indentations(data[pos1])[0]
+    else:
+        nspace = 0
     if level == 1:
         # assemble individual observers
         observers = []
@@ -588,7 +594,10 @@ plain_pack: ignore all indentation settings, pack as-is;
             observers.extend(obs_block)
 
     # write out the super YAML file
-    data[pos1 + 1:pos1 + 1] = observers
+    if any(line.strip() for line in data):
+        data[pos1 + 1:pos1 + 1] = observers
+    else:
+        data.extend(observers)
     with open(fpath, 'w') as outfile:
         for line in data:
             outfile.write(line + "\n")
