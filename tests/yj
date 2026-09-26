@@ -28,7 +28,7 @@ split_level = int(os.getenv("YJ_SPLIT_LEVEL", "1"))
 listIndent = os.getenv("YJ_LIST_INDENT", "False").upper() == "TRUE"
 plain_pack = os.getenv("YJ_PLAIN_PACK", "True").upper() == "TRUE"
 
-newblock_file, querystr, fpack, yobsout = "", "", "", ""
+newblock_file, querystr, fpack, yobsout, spaces = "", "", "", "", ""
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 #  process the command line options
@@ -43,12 +43,16 @@ elif operator == "split2":
 elif operator == "split":
     dirname = f'split{split_level}.{basename}'   # default value for the split operators
 
+if operator == "sat_anchors":
+    mysis = yfile
+
 if nargs > 2:
     querystr = args[3]
     dirname = args[3] # split operators
     fpack = args[3]  # pack operator
     yfile2 = args[3] # compare operators
     obs_str = args[3] # listobs, removeobs, keepobs
+    spaces = args[3]  # sat_anchors
 if nargs > 3:
     newblock_file = args[4]  # modify operator
     yobsout = args[4]  # listobs, removeobs, keepobs, optional
@@ -62,9 +66,9 @@ elif operator == "pack":  # pack operator
     dirname = yfile
 
 # ------------------------------------------------------------------------------------------------------------------------------------
-#  load the yaml file for all non-pack operations; pack will read a directory separately
+#  load the yaml file for all non-pack operations; pack will read a directory separately; sat_anchors does not read yaml
 # ------------------------------------------------------------------------------------------------------------------------------------
-if operator != "pack":
+if operator != "pack" and operator != "sat_anchors":
     data = hy.load(yfile)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
@@ -286,6 +290,20 @@ elif operator in ("listobs", "removeobs", "keepobs"):  # listobs, removeobs, kee
             hy.dump(output)
         else:
             hy.dump(output, fpath=yobsout)
+
+# ------------------------------------------------------------------------------------------------------------------------------------
+#  sat_anchors
+# ------------------------------------------------------------------------------------------------------------------------------------
+elif operator in ("sat_anchors"):  # generate sat anchors
+    if not mysis:
+        print('Usage: yj sat_anchors <mysis> ["spaces"]')
+        exit()
+    if not os.path.exists("satinfo"):
+        print("satinfo not found")
+        exit()
+    dcSatInfo = yj.load_satinfo()
+    text = yj.generate_sat_anchors(dcSatInfo, mysis, spaces)
+    print(text)
 
 else:
     hy.printd(f"unknown operator: {operator}")

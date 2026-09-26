@@ -84,6 +84,8 @@ mv split2.demo.yaml tmp/split2_op_moved
 
 ./yj keepobs demo.yaml "t183" > tmp/keepobs.yaml
 
+./yj sat_anchors atms_npp "    " > tmp/atms_npp_anchors.yaml
+
 diff -rf tmp ref_hifiyaml 1>/dev/null 2>/dev/null
 if (( $? == 0 )); then
   echo "test passed, identical results."

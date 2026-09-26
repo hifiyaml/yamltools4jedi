@@ -98,6 +98,22 @@ def load_satinfo():
     return dcSatInfo
 
 
+# generate one satellite anchor block (yaml-ready anchor section for a given SIS)
+def generate_sat_anchor(dcSatInfo, mysis, anchor_cat, spaces=""):
+    pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
+    if len(dcSatInfo[mysis][anchor_cat]) < 100:
+        elements_per_line = 10
+    else:
+        elements_per_line = 20
+    block = list_to_delimited_string(dcSatInfo[mysis][anchor_cat], pre_spaces, elements_per_line=elements_per_line)
+    # insert the first anchor information line
+    block.insert(0, f"{spaces}_anchor_{anchor_cat}: &{mysis}_{anchor_cat}")
+    if anchor_cat != "channels":  # channels is a string while others are lists
+        block[0] = block[0] + " ["
+        block[len(block) - 1] = block[len(block) - 1] + "]"
+    return block
+
+
 # update one satellite anchor
 # Expected anchor line format: _anchor_<cat>: &<sis>_<cat>
 #   e.g., _anchor_channels: &amsua_n15_channels
@@ -116,28 +132,26 @@ def update_sat_anchor(data, dcSatInfo, anchor):
     else:
         sys.stderr.write(f"WARNING: cannot parse SIS from anchor line: {line}\n")
         return
-    pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
-    if len(dcSatInfo[mysis][anchor_cat]) < 100:
-        elements_per_line = 10
-    else:
-        elements_per_line = 20
-    block = list_to_delimited_string(dcSatInfo[mysis][anchor_cat], pre_spaces, elements_per_line=elements_per_line)
-    # insert the first anchor information line
-    block.insert(0, f"{spaces}_anchor_{anchor_cat}: &{mysis}_{anchor_cat}")
-    if anchor_cat != "channels":  # channels is a string while others are lists
-        block[0] = block[0] + " ["
-        block[len(block) - 1] = block[len(block) - 1] + "]"
-    data[pos1:pos2] = block
+    data[pos1:pos2] = generate_sat_anchor(dcSatInfo, mysis, anchor_cat, spaces)
 
 
 # update satellite anchors
-def update_sat_anchors(data, dcInfo):
-    update_sat_anchor(data, dcInfo, "_anchor_channels")
-    update_sat_anchor(data, dcInfo, "_anchor_use_flag")
-    update_sat_anchor(data, dcInfo, "_anchor_use_flag_clddet")
-    update_sat_anchor(data, dcInfo, "_anchor_error0")
-    update_sat_anchor(data, dcInfo, "_anchor_error1")
-    update_sat_anchor(data, dcInfo, "_anchor_obserr_bound_max")
+def update_sat_anchors(data, dcSatInfo):
+    update_sat_anchor(data, dcSatInfo, "_anchor_channels")
+    update_sat_anchor(data, dcSatInfo, "_anchor_use_flag")
+    update_sat_anchor(data, dcSatInfo, "_anchor_use_flag_clddet")
+    update_sat_anchor(data, dcSatInfo, "_anchor_error0")
+    update_sat_anchor(data, dcSatInfo, "_anchor_error1")
+    update_sat_anchor(data, dcSatInfo, "_anchor_obserr_bound_max")
+
+
+# Generate satellite anchors
+def generate_sat_anchors(dcSatInfo, mysis, spaces=""):
+    text = ""
+    for anchor_cat in ["channels", "use_flag", "use_flag_clddet", "error0", "error1", "obserr_bound_max"]:
+        block = generate_sat_anchor(dcSatInfo, mysis, anchor_cat, spaces)
+        text += "\n".join(block) + "\n"
+    return text
 
 
 # tweak observers for getkf solver or post:
