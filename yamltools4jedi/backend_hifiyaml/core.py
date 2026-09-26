@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import sys
+import math
 
 
 def list_to_delimited_string(lst, spaces='  ', delimiter=', ', elements_per_line=20):
@@ -133,13 +134,17 @@ def load_cloudy_radiance_info():
     return dcCldRadInfo
 
 
+# determine the number of elements per line for formatting purposes
+def determine_elements_per_line(n):
+    target = 10 if n < 100 else 20
+    nlines = max(1, round(n / target))
+    return math.ceil(n / nlines)
+
+
 # generate one satellite anchor block (yaml-ready anchor section for a given SIS)
 def generate_sat_anchor(dcSatInfo, mysis, anchor_cat, spaces=""):
     pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
-    if len(dcSatInfo[mysis][anchor_cat]) < 100:
-        elements_per_line = 10
-    else:
-        elements_per_line = 20
+    elements_per_line = determine_elements_per_line(len(dcSatInfo[mysis][anchor_cat]))
     block = list_to_delimited_string(dcSatInfo[mysis][anchor_cat], pre_spaces, elements_per_line=elements_per_line)
     # insert the first anchor information line
     block.insert(0, f"{spaces}_anchor_{anchor_cat}: &{mysis}_{anchor_cat}")
@@ -192,10 +197,7 @@ def generate_sat_anchors(dcSatInfo, mysis, spaces=""):
 # generate cldamt anchor blocks (yaml-ready anchor sections for a given SIS)
 def generate_cldamt_anchors(dcSatInfo, dcCldRadInfo, mysis, obstype, spaces=""):
     pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
-    if len(dcSatInfo[mysis]["channels"]) < 100:
-        elements_per_line = 10
-    else:
-        elements_per_line = 20
+    elements_per_line = determine_elements_per_line(len(dcSatInfo[mysis]["channels"]))
     # cldamt_clear and cloudy
     list_clear, list_cloudy = [], []
     for chan in dcSatInfo[mysis]["channels"]:
