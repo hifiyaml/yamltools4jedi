@@ -409,6 +409,22 @@ def get_all_obs(data, shallow=False):
     return dcObs
 
 
+# remove filters by identifier from selected observers (default to all observers) in the YAML data
+def removefilter(data, filterIDs, observers=None):
+    identifiers = {name.strip() for name in filterIDs.split(",") if name.strip()}
+    if not identifiers:
+        return
+    observer_names = None if observers is None else {name.strip() for name in observers.split(",") if name.strip()}
+    spans = []
+    for name, observer in get_all_obs(data).items():
+        if observer_names is not None and name not in observer_names:
+            continue
+        for key in ("filters", "pre filters", "prior filters", "post filters"):
+            spans.extend((flt["pos1"], flt["pos2"]) for flt in observer[key] if flt["identifier"] in identifiers)
+    for start, end in sorted(spans, reverse=True):
+        del data[start:end]
+
+
 # write_out_filters and then remove them from obs["block"]
 def write_out_filters(key, obs, obspath, do_dedent, filterlist):
     if obs[key]:  # non-empty

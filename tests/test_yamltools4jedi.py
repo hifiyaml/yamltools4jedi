@@ -390,6 +390,104 @@ class TestGetAllFilters:
             assert len(f["block"]) > 0
 
 
+class TestRemovefilter:
+    def test_removes_matching_filters_from_all_observers(self):
+        lines = hy.text_to_yblock(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: first\n"
+            "    obs filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "      action:\n"
+            "        name: reject\n"
+            "    - filter: Perform Action\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "    - filter: Domain Check\n"
+            "      identifier:\n"
+            "        name: KeepMe\n"
+            "  - obs space:\n"
+            "      name: second\n"
+            "    obs pre filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: ObsErrorInit\n"
+            "    obs post filters:\n"
+            "    - filter: Domain Check\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "  - obs space:\n"
+            "      name: third\n"
+            "    obs filters:\n"
+            "    - filter: RejectList\n"
+        )
+        original = lines
+        yj.removefilter(lines, "RemoveMe, ObsErrorInit")
+        assert lines is original
+        assert [observer["name"] for observer in yj.get_all_obs(lines).values()] == ["first", "second", "third"]
+        assert sum(line.strip().startswith("- filter:") for line in lines) == 2
+        assert any(line.strip() == "name: KeepMe" for line in lines)
+        assert not any(line.strip() == "name: RemoveMe" for line in lines)
+        assert not any(line.strip() == "name: ObsErrorInit" for line in lines)
+        unchanged = list(lines)
+        yj.removefilter(lines, "NotPresent")
+        assert lines == unchanged
+        yj.removefilter(lines, ", ,")
+        assert lines == unchanged
+
+    def test_limits_removal_to_named_observers(self):
+        lines = hy.text_to_yblock(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: first\n"
+            "    obs filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: PolygonFilter\n"
+            "  - obs space:\n"
+            "      name: second\n"
+            "    obs pre filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: ObsErrorInit\n"
+            "  - obs space:\n"
+            "      name: third\n"
+            "    obs post filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: PolygonFilter\n"
+        )
+        unchanged = list(lines)
+        yj.removefilter(lines, "PolygonFilter", observers=" , ")
+        assert lines == unchanged
+        yj.removefilter(lines, "PolygonFilter, ObsErrorInit", observers=" first, second ")
+        remaining = yj.get_all_obs(lines)
+        assert not remaining["first"]["filters"]
+        assert not remaining["second"]["pre filters"]
+        assert remaining["third"]["post filters"][0]["identifier"] == "PolygonFilter"
+        yj.removefilter(lines, "PolygonFilter")
+        assert not yj.get_all_obs(lines)["third"]["post filters"]
+
+    def test_standalone_observer(self):
+        lines = hy.text_to_yblock(
+            "\n- obs space:\n"
+            "    name: single\n"
+            "  obs filters:\n"
+            "  - filter: RejectList\n"
+            "    identifier:\n"
+            "      name: RemoveMe\n"
+        )
+        yj.removefilter(lines, "RemoveMe")
+        assert lines == ["", "- obs space:", "    name: single", "  obs filters:"]
+
+
 # ============================================================
 # Tests: split1 and split2 (explicit level operators)
 # ============================================================
