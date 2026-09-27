@@ -128,7 +128,7 @@ def load_cloudy_radiance_info():
                             cldval1 = fields[3] if len(fields) == 4 else None  # optional cldval1 for gmi and amsr2
                             if obstype not in dcCldRadInfo:
                                 dcCldRadInfo[obstype] = {}
-                            dcCldRadInfo[obstype][chan] = {"cldamt_clear": cclr, "cldamt_cloudy": ccld, "cldval1": cldval1}
+                            dcCldRadInfo[obstype][chan] = {"cldamt_x0": cclr, "cldamt_x1": ccld, "cldval1": cldval1}
                         else:
                             sys.stderr.write(f"load_cloudy_radiance_info warning: expected 3 fields\n{line}\n")
     return dcCldRadInfo
@@ -198,23 +198,23 @@ def generate_sat_anchors(dcSatInfo, mysis, spaces=""):
 def generate_cldamt_anchors(dcSatInfo, dcCldRadInfo, mysis, obstype, spaces=""):
     pre_spaces = spaces + "    "  # add extra 4 spaces for anchor values
     elements_per_line = determine_elements_per_line(len(dcSatInfo[mysis]["channels"]))
-    # cldamt_clear and cloudy
+    # cldamt clear and cloudy (x0 and x1)
     list_clear, list_cloudy = [], []
     for chan in dcSatInfo[mysis]["channels"]:
         if chan in dcCldRadInfo[obstype]:
-            list_clear.append(dcCldRadInfo[obstype][chan]["cldamt_clear"])
-            list_cloudy.append(dcCldRadInfo[obstype][chan]["cldamt_cloudy"])
+            list_clear.append(dcCldRadInfo[obstype][chan]["cldamt_x0"])
+            list_cloudy.append(dcCldRadInfo[obstype][chan]["cldamt_x1"])
         else:
             list_clear.append("0.000")
             list_cloudy.append("0.000")
     block_clear = list_to_delimited_string(list_clear, pre_spaces, elements_per_line=elements_per_line)
     block_cloudy = list_to_delimited_string(list_cloudy, pre_spaces, elements_per_line=elements_per_line)
     # clear sky
-    block_clear.insert(0, f"{spaces}_anchor_cldamt_clear: &{mysis}_cldamt_clear")
+    block_clear.insert(0, f"{spaces}_anchor_cldamt_x0: &{mysis}_cldamt_x0")
     block_clear[0] = block_clear[0] + " ["
     block_clear[len(block_clear) - 1] = block_clear[len(block_clear) - 1] + "]"
     # cloudy sky
-    block_cloudy.insert(0, f"{spaces}_anchor_cldamt_cloudy: &{mysis}_cldamt_cloudy")
+    block_cloudy.insert(0, f"{spaces}_anchor_cldamt_x1: &{mysis}_cldamt_x1")
     block_cloudy[0] = block_cloudy[0] + " ["
     block_cloudy[len(block_cloudy) - 1] = block_cloudy[len(block_cloudy) - 1] + "]"
     text = "\n".join(block_clear + block_cloudy) + "\n"
