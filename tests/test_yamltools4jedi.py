@@ -3,6 +3,7 @@ import os
 import sys
 import copy
 import filecmp
+import subprocess
 
 import pytest
 
@@ -129,12 +130,121 @@ observers:
         dcObs = yj.get_all_obs(data)
         assert "test_observer" in dcObs
 
+    def test_jedi_query_to_generic(self):
+        data = hy.load(os.path.join(here, "aircar_t133.yaml"))
+        assert yj.jedi_query_to_generic(data, "#t133:PolygonCheck#filter") == (
+            "observations/observers/0/obs filters/1/filter"
+        )
+        assert yj.jedi_query_to_generic(data, "#t133#obs space/name") == (
+            "observations/observers/0/obs space/name"
+        )
+        assert yj.jedi_query_to_generic(data, "observations/observers/0") == (
+            "observations/observers/0"
+        )
+
+    def test_jedi_query_to_generic_accepts_full_observer_name(self):
+        data = hy.load(os.path.join(here, "aircar_t133.yaml"))
+        filters = yj.get_all_obs(data)["aircar_t133"]["filters"]
+        filter_index = next(i for i, item in enumerate(filters) if item["identifier"] == "ObsErrorInit")
+        assert yj.jedi_query_to_generic(
+            data, "#aircar_t133:ObsErrorInit#/obs operator"
+        ) == f"observations/observers/0/obs filters/{filter_index}/obs operator"
+
+    def test_jedi_query_to_generic_reports_unknown_observer_or_filter(self, capsys):
+        data = hy.load(os.path.join(here, "aircar_t133.yaml"))
+        assert yj.jedi_query_to_generic(data, "#missing#") is None
+        assert capsys.readouterr().err == 'observer "missing" not found!\n'
+        assert yj.jedi_query_to_generic(data, "#t133:missing#") is None
+        assert capsys.readouterr().err == 'filter identifier "missing" not found!\n'
+
+    def test_cli_jedi_query_failure_exits_with_error(self, tmp_path):
+        source = tmp_path / "observer.yaml"
+        source.write_text("observations:\n  observers: []\n")
+        result = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "dump", str(source), "#missing#"],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 1
+        assert result.stderr == 'observer "missing" not found!\n'
+
+    def test_filter_identifier_and_missing_identifier(self):
+        data = hy.text_to_yblock(
+            "- obs space:\n"
+            "    name: test_observer\n"
+            "  obs filters:\n"
+            "    - filter: Polygon Check\n"
+            "      where:\n"
+            "        - variable:\n"
+            "            name: MetaData/latitude\n"
+            "      identifier:\n"
+            "        name: PolygonCheck\n"
+            "        logging: true\n"
+            "    - filter: RejectList\n"
+        )
+        filters = yj.get_all_obs(data)["test_observer"]["filters"]
+        assert filters[0]["identifier"] == "PolygonCheck"
+        assert filters[1]["identifier"] == ""
+        assert all("id" not in item for item in filters)
+
+    def test_cli_filter_query_uses_identifier(self, tmp_path):
+        source = tmp_path / "observer.yaml"
+        source.write_text(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: aircar_t133\n"
+            "    obs filters:\n"
+            "    - filter: Polygon Check\n"
+            "      identifier:\n"
+            "        name: PolygonCheck\n"
+        )
+        result = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "dump", str(source),
+             "#t133:PolygonCheck#filter"],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "filter: Polygon Check" in result.stdout
+
 
 # ============================================================
 # Tests: split and pack (round-trip)
 # ============================================================
 
 class TestSplitPack:
+    @pytest.mark.parametrize("level", [1, 2])
+    @pytest.mark.parametrize("leading_blanks", [0, 2])
+    def test_standalone_observer_roundtrip(self, tmp_path, level, leading_blanks):
+        source = tmp_path / "aircar_t133.yaml"
+        source.write_text(
+            "\n" * leading_blanks + "     - obs space:\n"
+            "         name: aircar_t133\n"
+            "       obs filters:\n"
+            "         - filter: RejectList\n"
+            "           identifier:\n"
+            "             name: OutlierCheck\n"
+            "         - filter: Domain Check\n"
+            "           identifier:\n"
+            "             name: RangeCheck\n"
+            "         - filter: RejectList\n"
+        )
+        split_dir = str(tmp_path / "split")
+        yj.split(source, level=level, dirname=split_dir)
+
+        assert open(os.path.join(split_dir, "obslist.txt")).read() == "aircar_t133\n"
+        assert open(os.path.join(split_dir, "main.yaml")).read() == "\n" * leading_blanks
+        if level == 2:
+            obs_dir = os.path.join(split_dir, "aircar_t133")
+            assert open(os.path.join(obs_dir, "filterlist.txt")).read().splitlines() == [
+                "filter_00_OutlierCheck.yaml",
+                "filter_01_RangeCheck.yaml",
+                "filter_02_RejectList.yaml",
+            ]
+
+        packed = str(tmp_path / "packed.yaml")
+        yj.pack(split_dir, packed)
+        assert hy.load(source) == hy.load(packed)
+
     def test_split_level1_pack_roundtrip(self, tmp_path):
         """Split level 1 (no dedent) then pack should reproduce the original."""
         demo_path = os.path.join(here, "demo.yaml")
@@ -317,6 +427,192 @@ class TestGetAllFilters:
             assert len(f["block"]) > 0
 
 
+class TestRemovefilter:
+    def test_removes_matching_filters_from_all_observers(self):
+        lines = hy.text_to_yblock(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: first\n"
+            "    obs filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "      action:\n"
+            "        name: reject\n"
+            "    - filter: Perform Action\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "    - filter: Domain Check\n"
+            "      identifier:\n"
+            "        name: KeepMe\n"
+            "  - obs space:\n"
+            "      name: second\n"
+            "    obs pre filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: ObsErrorInit\n"
+            "    obs post filters:\n"
+            "    - filter: Domain Check\n"
+            "      identifier:\n"
+            "        name: RemoveMe\n"
+            "  - obs space:\n"
+            "      name: third\n"
+            "    obs filters:\n"
+            "    - filter: RejectList\n"
+        )
+        original = lines
+        yj.removefilter(lines, "RemoveMe, ObsErrorInit")
+        assert lines is original
+        assert [observer["name"] for observer in yj.get_all_obs(lines).values()] == ["first", "second", "third"]
+        assert sum(line.strip().startswith("- filter:") for line in lines) == 2
+        assert any(line.strip() == "name: KeepMe" for line in lines)
+        assert not any(line.strip() == "name: RemoveMe" for line in lines)
+        assert not any(line.strip() == "name: ObsErrorInit" for line in lines)
+        unchanged = list(lines)
+        yj.removefilter(lines, "NotPresent")
+        assert lines == unchanged
+        yj.removefilter(lines, ", ,")
+        assert lines == unchanged
+
+    def test_limits_removal_to_named_observers(self):
+        lines = hy.text_to_yblock(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: first\n"
+            "    obs filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: PolygonFilter\n"
+            "  - obs space:\n"
+            "      name: second\n"
+            "    obs pre filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: ObsErrorInit\n"
+            "  - obs space:\n"
+            "      name: third\n"
+            "    obs post filters:\n"
+            "    - filter: RejectList\n"
+            "      identifier:\n"
+            "        name: PolygonFilter\n"
+        )
+        unchanged = list(lines)
+        yj.removefilter(lines, "PolygonFilter", obs_str=" , ")
+        assert lines == unchanged
+        yj.removefilter(lines, "PolygonFilter, ObsErrorInit", obs_str=" first, second ")
+        remaining = yj.get_all_obs(lines)
+        assert not remaining["first"]["filters"]
+        assert not remaining["second"]["pre filters"]
+        assert remaining["third"]["post filters"][0]["identifier"] == "PolygonFilter"
+        yj.removefilter(lines, "PolygonFilter")
+        assert not yj.get_all_obs(lines)["third"]["post filters"]
+
+    def test_standalone_observer(self):
+        lines = hy.text_to_yblock(
+            "\n- obs space:\n"
+            "    name: single\n"
+            "  obs filters:\n"
+            "  - filter: RejectList\n"
+            "    identifier:\n"
+            "      name: RemoveMe\n"
+        )
+        yj.removefilter(lines, "RemoveMe")
+        assert lines == ["", "- obs space:", "    name: single", "  obs filters:"]
+
+
+class TestFilterOperations:
+    @staticmethod
+    def make_data():
+        return hy.text_to_yblock(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: obs_first\n"
+            "    obs filters:\n"
+            "    - filter: Polygon Check\n"
+            "      identifier:\n"
+            "        name: PolygonFilter\n"
+            "    - filter: RejectList\n"
+            "  - obs space:\n"
+            "      name: obs_second\n"
+            "    obs pre filters:\n"
+            "    - filter: Domain Check\n"
+            "      identifier:\n"
+            "        name: TimeWindowCheck\n"
+            "    - filter: RejectList\n"
+        )
+
+    def test_listfilter_uses_identifier_or_category_and_observer_scope(self, capsys):
+        lines = self.make_data()
+        yj.listfilter(lines, "second")
+        output = capsys.readouterr().out
+        assert output == (
+            "obs_second:\n"
+            "prefilter_00_TimeWindowCheck\n"
+            "prefilter_01_RejectList\n"
+        )
+
+        yj.listfilter(lines, "obs_second")
+        assert capsys.readouterr().out == output
+
+        yj.listfilter(lines)
+        output = capsys.readouterr().out
+        assert output == (
+            "obs_first:\n"
+            "filter_00_PolygonFilter\n"
+            "filter_01_RejectList\n"
+            "\n"
+            "obs_second:\n"
+            "prefilter_00_TimeWindowCheck\n"
+            "prefilter_01_RejectList\n"
+        )
+
+    @pytest.mark.parametrize("observer_selector", ["first", "obs_first"])
+    def test_keepfilter_scopes_to_selected_observers(self, observer_selector):
+        lines = self.make_data()
+        yj.keepfilter(lines, "PolygonFilter", obs_str=observer_selector)
+        observers = yj.get_all_obs(lines)
+        assert [flt["identifier"] or flt["category"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
+        assert [flt["identifier"] or flt["category"] for flt in observers["obs_second"]["pre filters"]] == [
+            "TimeWindowCheck", "RejectList"
+        ]
+
+    def test_removefilter_can_match_category_fallback(self):
+        lines = self.make_data()
+        yj.removefilter(lines, "RejectList")
+        observers = yj.get_all_obs(lines)
+        assert [flt["identifier"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
+        assert [flt["identifier"] for flt in observers["obs_second"]["pre filters"]] == ["TimeWindowCheck"]
+
+    def test_filter_cli_list_and_mutate(self, tmp_path):
+        source = tmp_path / "obs.yaml"
+        source.write_text("\n".join(self.make_data()) + "\n")
+        listed = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "listfilter", str(source), "first"],
+            capture_output=True, text=True,
+        )
+        assert listed.returncode == 0, listed.stderr
+        assert "obs_first:\nfilter_00_PolygonFilter\n" in listed.stdout
+        assert "obs_second:" not in listed.stdout
+
+        kept = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "keepfilter", str(source),
+             "PolygonFilter", "first"],
+            capture_output=True, text=True,
+        )
+        assert kept.returncode == 0, kept.stderr
+        observers = yj.get_all_obs(hy.text_to_yblock(kept.stdout))
+        assert [flt["identifier"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
+        assert [flt["identifier"] or flt["category"] for flt in observers["obs_second"]["pre filters"]] == [
+            "TimeWindowCheck", "RejectList"
+        ]
+
+
 # ============================================================
 # Tests: split1 and split2 (explicit level operators)
 # ============================================================
@@ -442,12 +738,27 @@ class TestListObs:
                           len(observer['prior filters']) + len(observer['post filters']))
             assert filter_knt > 0
 
+    def test_listobs_prints_summary(self, demo_data, capsys):
+        yj.listobs(demo_data)
+        output = capsys.readouterr().out
+        assert "3 observers:" in output
+        assert "t181" in output
+        assert "t183" in output
+        assert "t187" in output
+        assert "filters" in output
+
 
 # ============================================================
 # Tests: removeobs
 # ============================================================
 
 class TestRemoveObs:
+    def test_core_removeobs_matches_reference(self, demo_data):
+        data = copy.copy(demo_data)
+        yj.removeobs(data, "t183")
+        ref_path = os.path.join(here, "ref_hifiyaml", "removeobs.yaml")
+        assert data == hy.load(ref_path)
+
     def test_removeobs_single(self, demo_data):
         """removeobs with one observer should reduce count by 1."""
         data = copy.copy(demo_data)
@@ -514,6 +825,12 @@ class TestRemoveObs:
 # ============================================================
 
 class TestKeepObs:
+    def test_core_keepobs_matches_reference(self, demo_data):
+        data = copy.copy(demo_data)
+        yj.keepobs(data, "t183")
+        ref_path = os.path.join(here, "ref_hifiyaml", "keepobs.yaml")
+        assert data == hy.load(ref_path)
+
     def test_keepobs_single(self, demo_data):
         """keepobs with one observer should keep only that one."""
         data = copy.copy(demo_data)

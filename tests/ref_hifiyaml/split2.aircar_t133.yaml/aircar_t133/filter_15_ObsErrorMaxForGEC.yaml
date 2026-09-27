@@ -1,0 +1,21 @@
+         # Set ObsError set "error parameter" if > "min value"
+         - filter: Perform Action
+           apply at iterations: 0,1
+           identifier:
+             name: ObsErrorMaxForGEC
+             logging: true
+             diagnostic flag new: false
+           filter variables:
+           - name: airTemperature
+           action:
+             name: assign error
+             error parameter: 5.6
+           where:
+           - variable:
+               name: ObsErrorData/airTemperature
+             minvalue: 5.6
+           - variable:
+               name: ObsErrorData/airTemperature
+             value: is_valid
+           defer to post: true
+

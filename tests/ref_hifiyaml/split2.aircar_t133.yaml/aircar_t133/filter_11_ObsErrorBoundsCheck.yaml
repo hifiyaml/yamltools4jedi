@@ -1,0 +1,16 @@
+         # Bounds Check (ObsError)
+         - filter: Bounds Check
+           apply at iterations: 0,1
+           identifier:
+             name: ObsErrorBoundsCheck
+             logging: true
+             diagnostic flag new: false
+           filter variables:
+           - name: airTemperature
+           test variables:
+           - name:  ObsErrorData/airTemperature
+           minvalue: 0.0
+           maxvalue: 1000
+           action:
+             name: reject
+

@@ -1,0 +1,7 @@
+         # Remove all obs outside the regional domain polygon
+         - filter: Polygon Check
+           identifier:
+             name: PolygonCheck
+             logging: true
+           <<: *polygonConfig
+

@@ -1,0 +1,14 @@
+         # Bounds Check (ObsValue)
+         - filter: Bounds Check
+           apply at iterations: 0,1
+           identifier:
+             name: ObsValueBoundsCheck
+             logging: true
+             diagnostic flag new: false
+           filter variables:
+           - name: airTemperature
+           minvalue: 100
+           maxvalue: 400
+           action:
+             name: reject
+

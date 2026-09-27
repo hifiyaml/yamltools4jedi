@@ -10,8 +10,8 @@ export YJ_DEDENT=true
 ./yj dump demo.yaml "cost function/observations/observers/0/obs space" > tmp/ctest1.yaml
 export YJ_DEDENT=fase
 ./yj dump demo.yaml "cost function/observations/observers/0/obs space" > tmp/ctest2.yaml
-./yj dump getkf.yaml "#aircar_t133:obsErrorInit#/obs operator" &> tmp/keyError.yaml
-./yj dump getkf.yaml "#aircar_t133:obsErrorInit#/action" > tmp/obsErrorInitAction.yaml
+./yj dump getkf.yaml "#aircar_t133:ObsErrorInit#/obs operator" &> tmp/keyError.yaml
+./yj dump getkf.yaml "#aircar_t133:ObsErrorInit#/action" > tmp/obsErrorInitAction.yaml
 
 ./yj drop demo.yaml "cost function/observations/observers" > tmp/no_obs.yaml
 
@@ -53,6 +53,16 @@ else
   echo "FATAL: pack2.yaml is different from demo.yaml"
 fi
 
+./yj split2 aircar_t133.yaml
+mv split2.aircar_t133.yaml tmp
+./yj pack tmp/split2.aircar_t133.yaml tmp/aircar_t133.yaml
+diff aircar_t133.yaml tmp/aircar_t133.yaml
+if (( $? == 0 )); then
+  echo "GOOD: split and re-pack generate the identical aircar_t133.yaml"
+else
+  echo "FATAL: aircar_t133.yaml split and pack, not roundtrip identical"
+fi
+
 export YJ_USE_CONV_SAT_INFO=false
 export YJ_YTYPE="getkf"
 export YJ_GETKF_TYPE="solver"
@@ -83,6 +93,8 @@ mv split2.demo.yaml tmp/split2_op_moved
 ./yj removeobs demo.yaml "t183" > tmp/removeobs.yaml
 
 ./yj keepobs demo.yaml "t183" > tmp/keepobs.yaml
+
+./yj sat_anchors atms_npp "    " > tmp/atms_npp_anchors.yaml
 
 diff -rf tmp ref_hifiyaml 1>/dev/null 2>/dev/null
 if (( $? == 0 )); then
