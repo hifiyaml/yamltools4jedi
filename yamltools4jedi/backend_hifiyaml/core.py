@@ -409,23 +409,89 @@ def get_all_obs(data, shallow=False):
     return dcObs
 
 
-# remove filters by identifier from selected observers (default to all observers) in the YAML data
-def removefilter(data, filterIDs, observers=None):
-    identifiers = {name.strip() for name in filterIDs.split(",") if name.strip()}
-    if not identifiers:
-        return
-    observer_names = None if observers is None else {name.strip() for name in observers.split(",") if name.strip()}
+# list all observers and their filter counts
+def listobs(data):
+    dcObs = get_all_obs(data, shallow=False)
+    obs_text = ''
+    filter_text = ''
+    for name, observer in dcObs.items():
+        obs_text += observer['sname'] + ', '
+        filter_count = sum(len(observer[key]) for key in
+                           ('pre filters', 'filters', 'prior filters', 'post filters'))
+        filter_text += f'{name.ljust(35)}: {filter_count} filters\n'
+    obs_text = f'{len(dcObs)} observers:\n{obs_text.rstrip(", ")}'
+    print(f'{filter_text}\n\n{obs_text}\n')
+
+
+# select observers to keep or remove based on their short names
+def _select_observers(data, obs_str, keep_matches):
+    selected = {name for name in re.split(r'[,\s]+', obs_str) if name}
     spans = []
-    for name, observer in get_all_obs(data).items():
-        if observer_names is not None and name not in observer_names:
-            continue
-        for key in ("filters", "pre filters", "prior filters", "post filters"):
-            spans.extend((flt["pos1"], flt["pos2"]) for flt in observer[key] if flt["identifier"] in identifiers)
+    for observer in get_all_obs(data, shallow=True).values():
+        matches = observer['sname'] in selected
+        if matches != keep_matches:
+            spans.append((observer['pos1'], observer['pos2']))
     for start, end in sorted(spans, reverse=True):
         del data[start:end]
 
 
-# write_out_filters and then remove them from obs["block"]
+# remove observers by short name
+def removeobs(data, obs_str):
+    _select_observers(data, obs_str, keep_matches=False)
+
+
+# keep only the specified observers by short name
+def keepobs(data, obs_str):
+    _select_observers(data, obs_str, keep_matches=True)
+
+# helper function to get the label of a filter (either its identifier or category)
+def _filter_label(observer_filter):
+    return observer_filter["identifier"] or observer_filter["category"]
+
+# helper function to parse the observer selection string into a set of short names
+def _filter_observer_selection(obs_str):
+    if obs_str is None:
+        return None
+    return {name for name in re.split(r"[,\s]+", obs_str) if name}
+
+# list all filters for the selected observers, defaulting to all if none specified
+def listfilter(data, obs_str=None):
+    selected = _filter_observer_selection(obs_str)
+    for observer in get_all_obs(data, shallow=False).values():
+        if selected is not None and observer["sname"] not in selected:
+            continue
+        for key in ("filters", "pre filters", "prior filters", "post filters"):
+            for observer_filter in observer[key]:
+                print(f"{observer['name']}: {_filter_label(observer_filter)}")
+
+# helper function to select filters for removal or retention based on the filter string and observer selection
+def _select_filters(data, filter_str, obs_str, keep_matches):
+    selected_filters = {name.strip() for name in filter_str.split(",") if name.strip()}
+    if not selected_filters:
+        return
+    selected_observers = _filter_observer_selection(obs_str)
+    spans = []
+    for observer in get_all_obs(data, shallow=False).values():
+        if selected_observers is not None and observer["sname"] not in selected_observers:
+            continue
+        for key in ("filters", "pre filters", "prior filters", "post filters"):
+            for observer_filter in observer[key]:
+                matches = _filter_label(observer_filter) in selected_filters
+                if matches != keep_matches:
+                    spans.append((observer_filter["pos1"], observer_filter["pos2"]))
+    for start, end in sorted(spans, reverse=True):
+        del data[start:end]
+
+# remove the specified filters for the selected observers
+def removefilter(data, filter_str, obs_str=None):
+    _select_filters(data, filter_str, obs_str, keep_matches=False)
+
+# keep only the specified filters for the selected observers
+def keepfilter(data, filter_str, obs_str=None):
+    _select_filters(data, filter_str, obs_str, keep_matches=True)
+
+
+# write out the filters for the given observer and key, and then remove them from the observer's block
 def write_out_filters(key, obs, obspath, do_dedent, filterlist):
     if obs[key]:  # non-empty
         first = obs[key][0]["block"][0]

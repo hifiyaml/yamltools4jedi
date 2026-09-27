@@ -465,9 +465,9 @@ class TestRemovefilter:
             "        name: PolygonFilter\n"
         )
         unchanged = list(lines)
-        yj.removefilter(lines, "PolygonFilter", observers=" , ")
+        yj.removefilter(lines, "PolygonFilter", obs_str=" , ")
         assert lines == unchanged
-        yj.removefilter(lines, "PolygonFilter, ObsErrorInit", observers=" first, second ")
+        yj.removefilter(lines, "PolygonFilter, ObsErrorInit", obs_str=" first, second ")
         remaining = yj.get_all_obs(lines)
         assert not remaining["first"]["filters"]
         assert not remaining["second"]["pre filters"]
@@ -486,6 +486,81 @@ class TestRemovefilter:
         )
         yj.removefilter(lines, "RemoveMe")
         assert lines == ["", "- obs space:", "    name: single", "  obs filters:"]
+
+
+class TestFilterOperations:
+    @staticmethod
+    def make_data():
+        return hy.text_to_yblock(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: obs_first\n"
+            "    obs filters:\n"
+            "    - filter: Polygon Check\n"
+            "      identifier:\n"
+            "        name: PolygonFilter\n"
+            "    - filter: RejectList\n"
+            "  - obs space:\n"
+            "      name: obs_second\n"
+            "    obs pre filters:\n"
+            "    - filter: Domain Check\n"
+            "      identifier:\n"
+            "        name: TimeWindowCheck\n"
+            "    - filter: RejectList\n"
+        )
+
+    def test_listfilter_uses_identifier_or_category_and_observer_scope(self, capsys):
+        lines = self.make_data()
+        yj.listfilter(lines, "second")
+        output = capsys.readouterr().out.splitlines()
+        assert output == ["obs_second: TimeWindowCheck", "obs_second: RejectList"]
+
+        yj.listfilter(lines)
+        output = capsys.readouterr().out.splitlines()
+        assert "obs_first: PolygonFilter" in output
+        assert "obs_first: RejectList" in output
+        assert "obs_second: TimeWindowCheck" in output
+
+    def test_keepfilter_scopes_to_selected_observers(self):
+        lines = self.make_data()
+        yj.keepfilter(lines, "PolygonFilter", obs_str="first")
+        observers = yj.get_all_obs(lines)
+        assert [flt["identifier"] or flt["category"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
+        assert [flt["identifier"] or flt["category"] for flt in observers["obs_second"]["pre filters"]] == [
+            "TimeWindowCheck", "RejectList"
+        ]
+
+    def test_removefilter_can_match_category_fallback(self):
+        lines = self.make_data()
+        yj.removefilter(lines, "RejectList")
+        observers = yj.get_all_obs(lines)
+        assert [flt["identifier"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
+        assert [flt["identifier"] for flt in observers["obs_second"]["pre filters"]] == ["TimeWindowCheck"]
+
+    def test_filter_cli_list_and_mutate(self, tmp_path):
+        source = tmp_path / "obs.yaml"
+        source.write_text("\n".join(self.make_data()) + "\n")
+        listed = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "listfilter", str(source), "first"],
+            capture_output=True, text=True,
+        )
+        assert listed.returncode == 0, listed.stderr
+        assert "obs_first: PolygonFilter" in listed.stdout
+        assert "obs_second:" not in listed.stdout
+
+        output = tmp_path / "kept.yaml"
+        kept = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "keepfilter", str(source),
+             "PolygonFilter", "first", str(output)],
+            capture_output=True, text=True,
+        )
+        assert kept.returncode == 0, kept.stderr
+        observers = yj.get_all_obs(hy.load(str(output)))
+        assert [flt["identifier"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
+        assert [flt["identifier"] or flt["category"] for flt in observers["obs_second"]["pre filters"]] == [
+            "TimeWindowCheck", "RejectList"
+        ]
 
 
 # ============================================================
@@ -613,12 +688,27 @@ class TestListObs:
                           len(observer['prior filters']) + len(observer['post filters']))
             assert filter_knt > 0
 
+    def test_listobs_prints_summary(self, demo_data, capsys):
+        yj.listobs(demo_data)
+        output = capsys.readouterr().out
+        assert "3 observers:" in output
+        assert "t181" in output
+        assert "t183" in output
+        assert "t187" in output
+        assert "filters" in output
+
 
 # ============================================================
 # Tests: removeobs
 # ============================================================
 
 class TestRemoveObs:
+    def test_core_removeobs_matches_reference(self, demo_data):
+        data = copy.copy(demo_data)
+        yj.removeobs(data, "t183")
+        ref_path = os.path.join(here, "ref_hifiyaml", "removeobs.yaml")
+        assert data == hy.load(ref_path)
+
     def test_removeobs_single(self, demo_data):
         """removeobs with one observer should reduce count by 1."""
         data = copy.copy(demo_data)
@@ -685,6 +775,12 @@ class TestRemoveObs:
 # ============================================================
 
 class TestKeepObs:
+    def test_core_keepobs_matches_reference(self, demo_data):
+        data = copy.copy(demo_data)
+        yj.keepobs(data, "t183")
+        ref_path = os.path.join(here, "ref_hifiyaml", "keepobs.yaml")
+        assert data == hy.load(ref_path)
+
     def test_keepobs_single(self, demo_data):
         """keepobs with one observer should keep only that one."""
         data = copy.copy(demo_data)
