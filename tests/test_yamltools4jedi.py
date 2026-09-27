@@ -557,6 +557,9 @@ class TestFilterOperations:
             "prefilter_01_RejectList\n"
         )
 
+        yj.listfilter(lines, "obs_second")
+        assert capsys.readouterr().out == output
+
         yj.listfilter(lines)
         output = capsys.readouterr().out
         assert output == (

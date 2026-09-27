@@ -508,7 +508,7 @@ def listfilter(data, obs_str=None):
     selected = _filter_observer_selection(obs_str)
     sections = []
     for observer in get_all_obs(data, shallow=False).values():
-        if selected is not None and observer["sname"] not in selected:
+        if selected is not None and not {observer["name"], observer["sname"]}.intersection(selected):
             continue
         filenames = []
         for key in ("filters", "pre filters", "prior filters", "post filters"):
