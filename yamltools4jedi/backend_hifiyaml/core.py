@@ -528,7 +528,7 @@ def _select_filters(data, filter_str, obs_str, keep_matches):
     selected_observers = _filter_observer_selection(obs_str)
     spans = []
     for observer in get_all_obs(data, shallow=False).values():
-        if selected_observers is not None and observer["sname"] not in selected_observers:
+        if selected_observers is not None and not {observer["name"], observer["sname"]}.intersection(selected_observers):
             continue
         for key in ("filters", "pre filters", "prior filters", "post filters"):
             for observer_filter in observer[key]:

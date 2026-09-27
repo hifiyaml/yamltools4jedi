@@ -572,9 +572,10 @@ class TestFilterOperations:
             "prefilter_01_RejectList\n"
         )
 
-    def test_keepfilter_scopes_to_selected_observers(self):
+    @pytest.mark.parametrize("observer_selector", ["first", "obs_first"])
+    def test_keepfilter_scopes_to_selected_observers(self, observer_selector):
         lines = self.make_data()
-        yj.keepfilter(lines, "PolygonFilter", obs_str="first")
+        yj.keepfilter(lines, "PolygonFilter", obs_str=observer_selector)
         observers = yj.get_all_obs(lines)
         assert [flt["identifier"] or flt["category"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
         assert [flt["identifier"] or flt["category"] for flt in observers["obs_second"]["pre filters"]] == [
