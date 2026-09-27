@@ -3,6 +3,7 @@ import os
 import sys
 import copy
 import filecmp
+import subprocess
 
 import pytest
 
@@ -129,6 +130,45 @@ observers:
         dcObs = yj.get_all_obs(data)
         assert "test_observer" in dcObs
 
+    def test_filter_identifier_and_missing_identifier(self):
+        data = hy.text_to_yblock(
+            "- obs space:\n"
+            "    name: test_observer\n"
+            "  obs filters:\n"
+            "    - filter: Polygon Check\n"
+            "      where:\n"
+            "        - variable:\n"
+            "            name: MetaData/latitude\n"
+            "      identifier:\n"
+            "        name: PolygonCheck\n"
+            "        logging: true\n"
+            "    - filter: RejectList\n"
+        )
+        filters = yj.get_all_obs(data)["test_observer"]["filters"]
+        assert filters[0]["identifier"] == "PolygonCheck"
+        assert filters[1]["identifier"] == ""
+        assert all("id" not in item for item in filters)
+
+    def test_cli_filter_query_uses_identifier(self, tmp_path):
+        source = tmp_path / "observer.yaml"
+        source.write_text(
+            "observations:\n"
+            "  observers:\n"
+            "  - obs space:\n"
+            "      name: aircar_t133\n"
+            "    obs filters:\n"
+            "    - filter: Polygon Check\n"
+            "      identifier:\n"
+            "        name: PolygonCheck\n"
+        )
+        result = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "dump", str(source),
+             "#t133:PolygonCheck#filter"],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "filter: Polygon Check" in result.stdout
+
 
 # ============================================================
 # Tests: split and pack (round-trip)
@@ -149,6 +189,7 @@ class TestSplitPack:
             "         - filter: Domain Check\n"
             "           identifier:\n"
             "             name: RangeCheck\n"
+            "         - filter: RejectList\n"
         )
         split_dir = str(tmp_path / "split")
         yj.split(source, level=level, dirname=split_dir)
@@ -157,7 +198,11 @@ class TestSplitPack:
         assert open(os.path.join(split_dir, "main.yaml")).read() == "\n" * leading_blanks
         if level == 2:
             obs_dir = os.path.join(split_dir, "aircar_t133")
-            assert len(open(os.path.join(obs_dir, "filterlist.txt")).read().splitlines()) == 2
+            assert open(os.path.join(obs_dir, "filterlist.txt")).read().splitlines() == [
+                "filter_00_OutlierCheck.yaml",
+                "filter_01_RangeCheck.yaml",
+                "filter_02_RejectList.yaml",
+            ]
 
         packed = str(tmp_path / "packed.yaml")
         yj.pack(split_dir, packed)

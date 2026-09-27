@@ -97,11 +97,11 @@ if "#" in querystr:
         sname = observer["sname"]
         if sname in myobs:
             obsIndex = knt
-            if myfilter:  # find the specified filter id
+            if myfilter:  # find the specified filter identifier
                 def get_filterstr(key):
                     if key in observer:
                         for knt, dcFilter in enumerate(observer[key]):
-                            if dcFilter["id"] == myfilter:
+                            if dcFilter["identifier"] == myfilter:
                                 filterstr = f"/obs {key}/{knt}"
                                 return filterstr
                 if not filterstr:
@@ -113,7 +113,7 @@ if "#" in querystr:
                 if not filterstr:
                     filterstr = get_filterstr("post filters")
                 if not filterstr:
-                    sys.stderr.write(f'filterID "{myfilter}" not found!\n')
+                    sys.stderr.write(f'filter identifier "{myfilter}" not found!\n')
                     sys.exit(1)
             # ~~~~~~~~~~
             break

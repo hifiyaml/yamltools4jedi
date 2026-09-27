@@ -10,8 +10,8 @@ export YJ_DEDENT=true
 ./yj dump demo.yaml "cost function/observations/observers/0/obs space" > tmp/ctest1.yaml
 export YJ_DEDENT=fase
 ./yj dump demo.yaml "cost function/observations/observers/0/obs space" > tmp/ctest2.yaml
-./yj dump getkf.yaml "#aircar_t133:obsErrorInit#/obs operator" &> tmp/keyError.yaml
-./yj dump getkf.yaml "#aircar_t133:obsErrorInit#/action" > tmp/obsErrorInitAction.yaml
+./yj dump getkf.yaml "#aircar_t133:ObsErrorInit#/obs operator" &> tmp/keyError.yaml
+./yj dump getkf.yaml "#aircar_t133:ObsErrorInit#/action" > tmp/obsErrorInitAction.yaml
 
 ./yj drop demo.yaml "cost function/observations/observers" > tmp/no_obs.yaml
 

@@ -300,16 +300,16 @@ def get_all_filters(data, pos1, pos2):
         # get the whole block of an obs filter
         dcFilter = {
             "category": category,
-            "id": "",
+            "identifier": "",
             "pos1": cur,
             "pos2": next_one,
             "block": [],
         }
-        for i in range(cur, next_one):
-            _, _, line = hy.strip_indentations(data[i])
-            if not line.startswith('#') and line.startswith("filter id:"):
-                dcFilter["id"] = data[i].split(":")[1].strip()
-            dcFilter["block"].append(data[i])
+        dcFilter["block"].extend(data[cur:next_one])
+
+        identifier_pos, error = hy.get_start_pos(dcFilter["block"], "identifier/name", stop_on_error=False)
+        if error is None:
+            dcFilter["identifier"] = dcFilter["block"][identifier_pos].split(":", 1)[1].strip()
 
         filters.append(dcFilter)
         cur = next_one
@@ -415,7 +415,7 @@ def write_out_filters(key, obs, obspath, do_dedent, filterlist):
         first = obs[key][0]["block"][0]
         nspace = hy.strip_indentations(first)[0]  # get the extra number of indentations
         for i, dcFilter in enumerate(obs[key]):
-            category = dcFilter["category"].replace(' ', '_')
+            category = re.sub(r"[^\w.-]+", "_", dcFilter["identifier"] or dcFilter["category"]).strip("._") or "filter"
             prefix = key.replace(' ', '')[:-1]
             fpath = f"{obspath}/{prefix}_{i:02}_{category}.yaml"
             filterlist.append(f"{prefix}_{i:02}_{category}.yaml")
