@@ -516,20 +516,20 @@ class TestFilterOperations:
         output = capsys.readouterr().out
         assert output == (
             "obs_second:\n"
-            "prefilter_00_TimeWindowCheck.yaml\n"
-            "prefilter_01_RejectList.yaml\n"
+            "prefilter_00_TimeWindowCheck\n"
+            "prefilter_01_RejectList\n"
         )
 
         yj.listfilter(lines)
         output = capsys.readouterr().out
         assert output == (
             "obs_first:\n"
-            "filter_00_PolygonFilter.yaml\n"
-            "filter_01_RejectList.yaml\n"
+            "filter_00_PolygonFilter\n"
+            "filter_01_RejectList\n"
             "\n"
             "obs_second:\n"
-            "prefilter_00_TimeWindowCheck.yaml\n"
-            "prefilter_01_RejectList.yaml\n"
+            "prefilter_00_TimeWindowCheck\n"
+            "prefilter_01_RejectList\n"
         )
 
     def test_keepfilter_scopes_to_selected_observers(self):
@@ -556,7 +556,7 @@ class TestFilterOperations:
             capture_output=True, text=True,
         )
         assert listed.returncode == 0, listed.stderr
-        assert "obs_first:\nfilter_00_PolygonFilter.yaml" in listed.stdout
+        assert "obs_first:\nfilter_00_PolygonFilter\n" in listed.stdout
         assert "obs_second:" not in listed.stdout
 
         output = tmp_path / "kept.yaml"

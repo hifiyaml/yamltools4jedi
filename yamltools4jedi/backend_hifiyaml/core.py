@@ -472,7 +472,7 @@ def listfilter(data, obs_str=None):
             continue
         filenames = []
         for key in ("filters", "pre filters", "prior filters", "post filters"):
-            filenames.extend(_filter_filename(key, index, observer_filter)
+            filenames.extend(_filter_filename(key, index, observer_filter)[:-5]
                              for index, observer_filter in enumerate(observer[key]))
         if filenames:
             sections.append("\n".join([f"{observer['name']}:"] + filenames))
