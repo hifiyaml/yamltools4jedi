@@ -444,9 +444,17 @@ def removeobs(data, obs_str):
 def keepobs(data, obs_str):
     _select_observers(data, obs_str, keep_matches=True)
 
+
 # helper function to get the label of a filter (either its identifier or category)
 def _filter_label(observer_filter):
     return observer_filter["identifier"] or observer_filter["category"]
+
+
+def _filter_filename(key, index, observer_filter):
+    category = re.sub(r"[^\w.-]+", "_", _filter_label(observer_filter)).strip("._") or "filter"
+    prefix = key.replace(" ", "")[:-1]
+    return f"{prefix}_{index:02}_{category}.yaml"
+
 
 # helper function to parse the observer selection string into a set of short names
 def _filter_observer_selection(obs_str):
@@ -454,15 +462,23 @@ def _filter_observer_selection(obs_str):
         return None
     return {name for name in re.split(r"[,\s]+", obs_str) if name}
 
+
 # list all filters for the selected observers, defaulting to all if none specified
 def listfilter(data, obs_str=None):
     selected = _filter_observer_selection(obs_str)
+    sections = []
     for observer in get_all_obs(data, shallow=False).values():
         if selected is not None and observer["sname"] not in selected:
             continue
+        filenames = []
         for key in ("filters", "pre filters", "prior filters", "post filters"):
-            for observer_filter in observer[key]:
-                print(f"{observer['name']}: {_filter_label(observer_filter)}")
+            filenames.extend(_filter_filename(key, index, observer_filter)
+                             for index, observer_filter in enumerate(observer[key]))
+        if filenames:
+            sections.append("\n".join([f"{observer['name']}:"] + filenames))
+    if sections:
+        print("\n\n".join(sections))
+
 
 # helper function to select filters for removal or retention based on the filter string and observer selection
 def _select_filters(data, filter_str, obs_str, keep_matches):
@@ -482,9 +498,11 @@ def _select_filters(data, filter_str, obs_str, keep_matches):
     for start, end in sorted(spans, reverse=True):
         del data[start:end]
 
+
 # remove the specified filters for the selected observers
 def removefilter(data, filter_str, obs_str=None):
     _select_filters(data, filter_str, obs_str, keep_matches=False)
+
 
 # keep only the specified filters for the selected observers
 def keepfilter(data, filter_str, obs_str=None):
@@ -497,10 +515,9 @@ def write_out_filters(key, obs, obspath, do_dedent, filterlist):
         first = obs[key][0]["block"][0]
         nspace = hy.strip_indentations(first)[0]  # get the extra number of indentations
         for i, dcFilter in enumerate(obs[key]):
-            category = re.sub(r"[^\w.-]+", "_", dcFilter["identifier"] or dcFilter["category"]).strip("._") or "filter"
-            prefix = key.replace(' ', '')[:-1]
-            fpath = f"{obspath}/{prefix}_{i:02}_{category}.yaml"
-            filterlist.append(f"{prefix}_{i:02}_{category}.yaml")
+            filename = _filter_filename(key, i, dcFilter)
+            fpath = f"{obspath}/{filename}"
+            filterlist.append(filename)
             with open(fpath, 'w') as outfile:
                 write_block(outfile, dcFilter["block"], do_dedent, nspace)
         # remove "key" section from the obs["block"]

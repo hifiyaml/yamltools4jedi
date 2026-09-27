@@ -513,14 +513,24 @@ class TestFilterOperations:
     def test_listfilter_uses_identifier_or_category_and_observer_scope(self, capsys):
         lines = self.make_data()
         yj.listfilter(lines, "second")
-        output = capsys.readouterr().out.splitlines()
-        assert output == ["obs_second: TimeWindowCheck", "obs_second: RejectList"]
+        output = capsys.readouterr().out
+        assert output == (
+            "obs_second:\n"
+            "prefilter_00_TimeWindowCheck.yaml\n"
+            "prefilter_01_RejectList.yaml\n"
+        )
 
         yj.listfilter(lines)
-        output = capsys.readouterr().out.splitlines()
-        assert "obs_first: PolygonFilter" in output
-        assert "obs_first: RejectList" in output
-        assert "obs_second: TimeWindowCheck" in output
+        output = capsys.readouterr().out
+        assert output == (
+            "obs_first:\n"
+            "filter_00_PolygonFilter.yaml\n"
+            "filter_01_RejectList.yaml\n"
+            "\n"
+            "obs_second:\n"
+            "prefilter_00_TimeWindowCheck.yaml\n"
+            "prefilter_01_RejectList.yaml\n"
+        )
 
     def test_keepfilter_scopes_to_selected_observers(self):
         lines = self.make_data()
@@ -546,7 +556,7 @@ class TestFilterOperations:
             capture_output=True, text=True,
         )
         assert listed.returncode == 0, listed.stderr
-        assert "obs_first: PolygonFilter" in listed.stdout
+        assert "obs_first:\nfilter_00_PolygonFilter.yaml" in listed.stdout
         assert "obs_second:" not in listed.stdout
 
         output = tmp_path / "kept.yaml"
