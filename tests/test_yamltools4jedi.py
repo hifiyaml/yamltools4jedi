@@ -130,6 +130,43 @@ observers:
         dcObs = yj.get_all_obs(data)
         assert "test_observer" in dcObs
 
+    def test_jedi_query_to_generic(self):
+        data = hy.load(os.path.join(here, "aircar_t133.yaml"))
+        assert yj.jedi_query_to_generic(data, "#t133:PolygonCheck#filter") == (
+            "observations/observers/0/obs filters/1/filter"
+        )
+        assert yj.jedi_query_to_generic(data, "#t133#obs space/name") == (
+            "observations/observers/0/obs space/name"
+        )
+        assert yj.jedi_query_to_generic(data, "observations/observers/0") == (
+            "observations/observers/0"
+        )
+
+    def test_jedi_query_to_generic_accepts_full_observer_name(self):
+        data = hy.load(os.path.join(here, "aircar_t133.yaml"))
+        filters = yj.get_all_obs(data)["aircar_t133"]["filters"]
+        filter_index = next(i for i, item in enumerate(filters) if item["identifier"] == "ObsErrorInit")
+        assert yj.jedi_query_to_generic(
+            data, "#aircar_t133:ObsErrorInit#/obs operator"
+        ) == f"observations/observers/0/obs filters/{filter_index}/obs operator"
+
+    def test_jedi_query_to_generic_reports_unknown_observer_or_filter(self, capsys):
+        data = hy.load(os.path.join(here, "aircar_t133.yaml"))
+        assert yj.jedi_query_to_generic(data, "#missing#") is None
+        assert capsys.readouterr().err == 'observer "missing" not found!\n'
+        assert yj.jedi_query_to_generic(data, "#t133:missing#") is None
+        assert capsys.readouterr().err == 'filter identifier "missing" not found!\n'
+
+    def test_cli_jedi_query_failure_exits_with_error(self, tmp_path):
+        source = tmp_path / "observer.yaml"
+        source.write_text("observations:\n  observers: []\n")
+        result = subprocess.run(
+            [sys.executable, os.path.join(here, "yj"), "dump", str(source), "#missing#"],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 1
+        assert result.stderr == 'observer "missing" not found!\n'
+
     def test_filter_identifier_and_missing_identifier(self):
         data = hy.text_to_yblock(
             "- obs space:\n"
@@ -559,14 +596,13 @@ class TestFilterOperations:
         assert "obs_first:\nfilter_00_PolygonFilter\n" in listed.stdout
         assert "obs_second:" not in listed.stdout
 
-        output = tmp_path / "kept.yaml"
         kept = subprocess.run(
             [sys.executable, os.path.join(here, "yj"), "keepfilter", str(source),
-             "PolygonFilter", "first", str(output)],
+             "PolygonFilter", "first"],
             capture_output=True, text=True,
         )
         assert kept.returncode == 0, kept.stderr
-        observers = yj.get_all_obs(hy.load(str(output)))
+        observers = yj.get_all_obs(hy.text_to_yblock(kept.stdout))
         assert [flt["identifier"] for flt in observers["obs_first"]["filters"]] == ["PolygonFilter"]
         assert [flt["identifier"] or flt["category"] for flt in observers["obs_second"]["pre filters"]] == [
             "TimeWindowCheck", "RejectList"

@@ -62,7 +62,6 @@ if operator == "listfilter":
 elif operator in ("removefilter", "keepfilter"):
     filter_str = args[3] if nargs > 2 else ""
     obs_str = args[4] if nargs > 3 else None
-    yobsout = args[5] if nargs > 4 else ""
 
 if operator == "modify":
     if not newblock_file:
@@ -79,56 +78,11 @@ if operator != "pack" and operator != "sat_anchors":
     data = hy.load(yfile)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
-#  if specified, convert JEDI specific querystr (#obs:filter#/path/to/a/block) to be generic
+#  convert JEDI's "#observer[:filter]#further_path" queries to generic hifiyaml paths
 # ------------------------------------------------------------------------------------------------------------------------------------
 if "#" in querystr:
-    querystr = querystr.strip("#").strip()
-    parts = querystr.split("#")
-    part0 = parts[0]
-    part1 = ""
-    if len(parts) > 1:
-        part1 = parts[1]
-    myfilter = ""
-    if ":" in part0:
-        myobs, myfilter = part0.strip().split(":")
-    else:
-        myobs = part0.strip()
-    if myfilter:  # need to read all obs/filters
-        dcObs = yj.get_all_obs(data, shallow=False)
-    else:
-        dcObs = yj.get_all_obs(data, shallow=True)
-    # ~~~~
-    obsIndex = -1
-    filterstr = ""
-    for knt, (name, observer) in enumerate(dcObs.items()):
-        sname = observer["sname"]
-        if sname in myobs:
-            obsIndex = knt
-            if myfilter:  # find the specified filter identifier
-                def get_filterstr(key):
-                    if key in observer:
-                        for knt, dcFilter in enumerate(observer[key]):
-                            if dcFilter["identifier"] == myfilter:
-                                filterstr = f"/obs {key}/{knt}"
-                                return filterstr
-                if not filterstr:
-                    filterstr = get_filterstr("filters")
-                if not filterstr:
-                    filterstr = get_filterstr("prior filters")
-                if not filterstr:
-                    filterstr = get_filterstr("pre filters")
-                if not filterstr:
-                    filterstr = get_filterstr("post filters")
-                if not filterstr:
-                    sys.stderr.write(f'filter identifier "{myfilter}" not found!\n')
-                    sys.exit(1)
-            # ~~~~~~~~~~
-            break
-    # ~~~~~~~~
-    if obsIndex >= 0:
-        querystr = f"observations/observers/{obsIndex}{filterstr}/" +  part1.strip().strip("/")
-    else:
-        sys.stderr.write(f'observer "{myobs}" not found!\n')
+    querystr = yj.jedi_query_to_generic(data, querystr)
+    if querystr is None:
         sys.exit(1)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
@@ -263,6 +217,9 @@ elif operator in ("listobs", "removeobs", "keepobs"):  # listobs, removeobs, kee
         else:
             hy.dump(data, fpath=yobsout)
 
+# ------------------------------------------------------------------------------------------------------------------------------------
+# listfilter, removefilter, keepfilter
+# ------------------------------------------------------------------------------------------------------------------------------------
 elif operator == "listfilter":
     yj.listfilter(data, obs_str)
 
@@ -271,10 +228,7 @@ elif operator in ("removefilter", "keepfilter"):
         yj.removefilter(data, filter_str, obs_str)
     else:
         yj.keepfilter(data, filter_str, obs_str)
-    if not yobsout:
-        hy.dump(data)
-    else:
-        hy.dump(data, fpath=yobsout)
+    hy.dump(data)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
 #  sat_anchors

@@ -409,6 +409,46 @@ def get_all_obs(data, shallow=False):
     return dcObs
 
 
+def jedi_query_to_generic(data, querystr):
+    if "#" not in querystr:
+        return querystr
+
+    query = querystr.strip("#").strip()
+    selector, separator, path = query.partition("#")
+    if ":" in selector:
+        observer_name, filter_identifier = selector.split(":", 1)
+        observer_name = observer_name.strip()
+        filter_identifier = filter_identifier.strip()
+    else:
+        observer_name = selector.strip()
+        filter_identifier = ""
+
+    observers = get_all_obs(data, shallow=not bool(filter_identifier))
+    for observer_index, observer in enumerate(observers.values()):
+        if observer["name"] != observer_name and observer["sname"] != observer_name:
+            continue
+
+        filter_path = ""
+        if filter_identifier:
+            for key in ("filters", "prior filters", "pre filters", "post filters"):
+                for filter_index, observer_filter in enumerate(observer[key]):
+                    if observer_filter["identifier"] == filter_identifier:
+                        filter_path = f"/obs {key}/{filter_index}"
+                        break
+                if filter_path:
+                    break
+            if not filter_path:
+                sys.stderr.write(f'filter identifier "{filter_identifier}" not found!\n')
+                return None
+
+        suffix = path.strip().strip("/") if separator else ""
+        generic_path = f"observations/observers/{observer_index}{filter_path}"
+        return f"{generic_path}/{suffix}" if suffix else generic_path
+
+    sys.stderr.write(f'observer "{observer_name}" not found!\n')
+    return None
+
+
 # list all observers and their filter counts
 def listobs(data):
     dcObs = get_all_obs(data, shallow=False)
