@@ -25,6 +25,11 @@ def printd(*parms):
     sys.stderr.write(msg + "\n")
 
 
+def _first_yaml_content_index(data):
+    return next((index for index, line in enumerate(data)
+                 if line.strip() and not line.lstrip().startswith("#")), None)
+
+
 # write a YAML block to a file with optional dedenting
 def write_block(outfile, block, do_dedent, nspace):
     for line in block:
@@ -620,8 +625,10 @@ def split(fpath, level=1, dirname=".", do_dedent=False):
                 write_block(outfile, obs["block"], do_dedent, nspace)
 
     # write main.yaml
-    if next((line for line in data if line.strip()), "").lstrip().startswith("- obs space:"):
-        data = data[:next(index for index, line in enumerate(data) if line.strip())]
+    first_content = _first_yaml_content_index(data)
+    if first_content is not None and data[first_content].lstrip().startswith("- obs space:"):
+        first_observer_start = next(iter(dcObs.values()))["pos1"]
+        data = data[:first_observer_start]
     else:
         pos1, _ = hy.get_start_pos(data, "observations/observers")
         pos2 = hy.next_pos(data, pos1)
@@ -681,7 +688,8 @@ plain_pack: ignore all indentation settings, pack as-is;
         return
 
     data = hy.load(os.path.join(dirname, "main.yaml"))
-    if any(line.strip() for line in data):
+    has_yaml_content = _first_yaml_content_index(data) is not None
+    if has_yaml_content:
         pos1, _ = hy.get_start_pos(data, "observations/observers")
         nspace = hy.strip_indentations(data[pos1])[0]
     else:
@@ -733,7 +741,7 @@ plain_pack: ignore all indentation settings, pack as-is;
             observers.extend(obs_block)
 
     # write out the super YAML file
-    if any(line.strip() for line in data):
+    if has_yaml_content:
         data[pos1 + 1:pos1 + 1] = observers
     else:
         data.extend(observers)
