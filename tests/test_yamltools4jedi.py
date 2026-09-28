@@ -214,10 +214,15 @@ observers:
 class TestSplitPack:
     @pytest.mark.parametrize("level", [1, 2])
     @pytest.mark.parametrize("leading_blanks", [0, 2])
-    def test_standalone_observer_roundtrip(self, tmp_path, level, leading_blanks):
+    @pytest.mark.parametrize("leading_comments", [
+        "",
+        "# aircar_t133\n      # aircar_t133\n",
+        "## just a test\n#\n",
+    ])
+    def test_standalone_observer_roundtrip(self, tmp_path, level, leading_blanks, leading_comments):
         source = tmp_path / "aircar_t133.yaml"
         source.write_text(
-            "\n" * leading_blanks + "     - obs space:\n"
+            "\n" * leading_blanks + leading_comments + "     - obs space:\n"
             "         name: aircar_t133\n"
             "       obs filters:\n"
             "         - filter: RejectList\n"
@@ -232,7 +237,6 @@ class TestSplitPack:
         yj.split(source, level=level, dirname=split_dir)
 
         assert open(os.path.join(split_dir, "obslist.txt")).read() == "aircar_t133\n"
-        assert open(os.path.join(split_dir, "main.yaml")).read() == "\n" * leading_blanks
         if level == 2:
             obs_dir = os.path.join(split_dir, "aircar_t133")
             assert open(os.path.join(obs_dir, "filterlist.txt")).read().splitlines() == [
@@ -244,6 +248,12 @@ class TestSplitPack:
         packed = str(tmp_path / "packed.yaml")
         yj.pack(split_dir, packed)
         assert hy.load(source) == hy.load(packed)
+
+        second_split_dir = str(tmp_path / "split-again")
+        yj.split(packed, level=level, dirname=second_split_dir)
+        packed_again = str(tmp_path / "packed-again.yaml")
+        yj.pack(second_split_dir, packed_again)
+        assert hy.load(source) == hy.load(packed_again)
 
     def test_split_level1_pack_roundtrip(self, tmp_path):
         """Split level 1 (no dedent) then pack should reproduce the original."""
